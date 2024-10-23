@@ -1,11 +1,10 @@
-// functions to test servos
-// Base link, link 1, link 2, link 3, link 4, end effector link
-// link 1 == link2 when link 2 is at 90 degrees
+/* Written for a 6R-DOF manipulator. 
 
-/* FORMULAS
+ FORMULAS
     theta = arctan(y/x);      Get angle from (x,y) coordinates
-
-    
+    Link 1 == Link 2, when Joint 2 is 90 degrees
+    Link 2 is parallel to the base when |Joint1 - Joint2| = 90
+    Link 2 is perpendicular to the base when Joint2 == Joint1
 
   */
 
@@ -32,40 +31,66 @@ float tickPosC = 368;
 float tickPosD = 368; 
 float tickPosE = 368;
 
-struct motor{
-  int pin;
-  float x;
-  float y;
-  float z;
+struct joint{
+  int pin;              // which pins on the PCA 9685 the motor is connected to.
+  float coords[3];      // changed x, y, z values into an array
   float length;
-  float motorAngle;
+  float jointPosition;     // check if this ever switches between holding tick values or degree values !!!
 };
 
-motor base = {0, 0, 0, 0, 0, tickPosA};
-motor link1 = {1, 0, 4.75, 0, 4.75, tickPosB};
-motor link2 = {2, 0, 3.5, 0, 3.5, tickPosC};
-motor link3 = {3, 0, 0, 0, 4, tickPosD};
-motor link4 = {4, 0, 0, 0, 0, tickPosE};
+// joint objects
+joint base = {0, {0, 0, 0}, 0, tickPosA};
+joint link1 = {1, {0, 4.75, 0}, 4.75, tickPosB};
+joint link2 = {2, {0, 3.5, 0}, 3.5, tickPosC};
+joint link3 = {3, {0, 0, 0}, 4, tickPosD};
+joint link4 = {4, {0, 0, 0}, 0, tickPosE};
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9600); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
-  pwm.setPWM(base.pin,0,base.motorAngle);
+  pwm.setPWM(base.pin,0,base.jointPosition);
   pwm.setPWM(1,0,tickPosB);
   pwm.setPWM(2,0,tickPosC);
   pwm.setPWM(3,0,tickPosD);
 }
 
-// Conversion Functions
-float degreeToPWM(float angle){ // --WORKS--
-  float pulse = map(angle, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); // converts degrees to a pulse value
-  int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); // converts the pulse values to "tick" values
+/*
+Parameters: an angle
+  converts an angle(degrees) to a pulse(seconds), then to a pulse(ticks)
+Returns: angle in ticks
+*/
+float convertToTicks(float angle){ // --WORKS--
+  float pulse = map(angle, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
+  int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
   return ticks;
 }
 
+/*
+Parameters: a joint object, the desired angle in degrees
+converts the angle to tick-pulses and incrementally sets a new position
+*/
+void setPosition(joint *joint, float newAngle){
+  float newPosition = convertToTicks(newAngle);
+  float previousPosition = joint -> jointPosition; 
+  if(previousPosition < newPosition){
+    for(float updatedPosition = previousPosition; updatedPosition < newPosition; updatedPosition++){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(delayTime);
+    }
+  }
+  if(previousPosition > newPosition){
+    for(float updatedPosition = previousPosition; updatedPosition > newPosition; updatedPosition--){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(delayTime);
+    }
+  } 
+}
+
 void getPosition(float theta, int i){
-  motor *link;
+  joint *link;
   if (i == 0){
     link = &base;
   }
@@ -83,20 +108,20 @@ void getPosition(float theta, int i){
   }
   float betaB = 90 - theta; // this gets the angle complementary to theta
   float distance = link->length * sin(degreesToRadians(betaB)); // WORKS
-  link -> x = abs(distance);
+  link -> coords[0] = abs(distance); // should this be absolute?
   Serial.print(" x: ");
-  Serial.println(link -> x);
+  Serial.println(link -> coords[0]);
 
   float height = link->length * (sin(degreesToRadians(theta))); //WORKS
-  link -> y = abs(height);
+  link -> coords[1] = abs(height); // should this be absolute?
   Serial.print(" y: ");
-  Serial.println(link -> y);
+  Serial.println(link -> coords[1]);
 }
 
 void checkPulse(int pin, float angle) { // a test function
   int pulse_ticks, degreePulse;
   Serial.println(angle);
-  motor *link; // using if statements bc too lazy to pass objects rn
+  joint *link; // using if statements bc too lazy to pass objects rn
   if (pin == 0){
     link = &base;
   }
@@ -112,19 +137,19 @@ void checkPulse(int pin, float angle) { // a test function
   if (pin == 4){
     link = &link4;
   }
-  pulse_ticks = degreeToPWM(angle);
-  float current = link -> motorAngle; // initializes a reference variable to the current position
+  pulse_ticks = convertToTicks(angle);
+  float current = link -> jointPosition; // initializes a reference variable to the current position
   if(current < pulse_ticks){
     for(float pos = current; pos <= pulse_ticks; pos+=1){
       pwm.setPWM(pin, 0, pos);
-      link -> motorAngle = pos;
+      link -> jointPosition = pos;
       delay(delayTime);
     }
   }
   if(current > pulse_ticks){
     for(float pos = current; pos >= pulse_ticks; pos-=1){
       pwm.setPWM(pin, 0, pos);
-      link -> motorAngle = pos;
+      link -> jointPosition = pos;
       delay(delayTime);
     }
   }
@@ -137,6 +162,10 @@ void checkPulse(int pin, float angle) { // a test function
 void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS--
   float theta1, theta2;
   theta1 = angle;
+
+  /*
+    When |L1 - L2| = 90, then L2 will be parallel to the base.
+  */
   if (theta1 < 90){
     theta2 = 180 - (90 - theta1);
   }
@@ -150,54 +179,54 @@ void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS--
   Serial.println(theta1);
   Serial.print("theta2: ");
   Serial.println(theta2);
-  motor *linkp, *linkq;
+  joint *linkp, *linkq;
   linkp = &base;
   linkq = &link1;
   // Link1
-  int pwm1 = degreeToPWM(theta1);
-  float current = linkp -> motorAngle; 
-  if(current < pwm1){
-    for(float pos = current; pos <= pwm1; pos+=1){
+  int pwm1 = convertToTicks(theta1);
+  float currentPos = linkp -> jointPosition; 
+  if(currentPos < pwm1){
+    for(float pos = currentPos; pos <= pwm1; pos+=1){
       pwm.setPWM(0, 0, pos);
-      linkp -> motorAngle = pos;
+      linkp -> jointPosition = pos;
       delay(delayTime);
     }
   }
-  if(current > pwm1){
-    for(float pos = current; pos >= pwm1; pos-=1){
+  if(currentPos > pwm1){
+    for(float pos = currentPos; pos >= pwm1; pos-=1){
       pwm.setPWM(0, 0, pos);
-      linkp -> motorAngle = pos;
+      linkp -> jointPosition = pos;
       delay(delayTime);
     }
   }
   // Link2
-  int pwm2 = degreeToPWM(theta2);
-  float current2 = linkq -> motorAngle; 
-  if(current2 < pwm2){
-    for(float pos2 = current2; pos2 <= pwm2; pos2 += 1){
+  int pwm2 = convertToTicks(theta2);
+  float currentPos2 = linkq -> jointPosition; 
+  if(currentPos2 < pwm2){
+    for(float pos2 = currentPos2; pos2 <= pwm2; pos2 += 1){
       pwm.setPWM(1, 0, pos2);
-      linkq -> motorAngle = pos2;
+      linkq -> jointPosition = pos2;
       delay(delayTime);
     }
   }
-  if(current2 > pwm2){
-    for(float pos2 = current2; pos2 >= pwm2; pos2 -= 1){
+  if(currentPos2 > pwm2){
+    for(float pos2 = currentPos2; pos2 >= pwm2; pos2 -= 1){
       pwm.setPWM(1, 0, pos2);
-      linkq -> motorAngle = pos2;
+      linkq -> jointPosition = pos2;
       delay(delayTime);
     }
   }
   Serial.println("---------------");
 }
-// L2 is always linear with L1 when L2 is at 90 degrees
-void l2equalL1(float angle){ //linearly equivalent. L2 constantly at 90 degrees
+// L2 is always linear with L1 when L2 is at 90 degrees, no matter what position L1 is in.
+void l2equalL1(float angle){ //linearly equivalent. 
   float theta2;
   theta2 = 90;
 }
 // L2 is perpendicular to to the ground when theta1 and theta 2 are the same
-void l2Perpendicular(float angle){ // keep L2 at 90 degrees to floor. (or perpendicular)
+void l2Perpendicular(float angle){ 
   float theta1, theta2;
-  theta1 = degreeToPWM(angle);
+  theta1 = convertToTicks(angle);
   theta2 = theta1;
   pwm.setPWM(0, 0, theta1);
   pwm.setPWM(0, 0, theta2);
@@ -207,6 +236,7 @@ void l2Perpendicular(float angle){ // keep L2 at 90 degrees to floor. (or perpen
 void loop() {
   float pin, angle;
   int i;
+  joint *joint;
   angle = 0;
   while(Serial.available() > 0)
   {
