@@ -120,7 +120,7 @@ void degreesToCoords(linkObj *link, float angle){ // calculates the local coords
   float y = getY(link, angle);
   updateLocal(link, x, y);
 }
-// ------------------------------------------INVERSE---------------------------------
+// ------------------------------------------INVERSE--------------------------------- in progress
 
 void coordsToDeg(float y, float x){ // correct
   // maybe use this to point the link to the target coords? Then calculate if the target coords are within reach?
