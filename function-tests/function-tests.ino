@@ -78,7 +78,8 @@ void updateGlobal(int i, float x, float y){ // Updates the individual global pos
   linksList[i] -> globalCoords[1]= y;
 }
 
-// These get LOCAL coords. Global Coords are accumulated from local values
+// These get LOCAL coords. Global Coords are accumulated from local coords.
+// WHENEVER EITHER OF THESE FUNCTIONS ARE CALLED, THEY ARE AUTOMATICALLY UPDATED. THEY SHOULD ALWAYS BE CALLED TOGETHER
 float getX(linkObj *link, float angle){
   float x = link->length * (cos(degreesToRadians(angle))); 
   link -> localCoords[0] = (x); 
