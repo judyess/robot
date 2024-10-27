@@ -199,8 +199,8 @@ void getCoords(joint *link, float theta){
   Serial.println(")");
 }
 /*
-Y is wrong because this is just adding up coords. 
-x is correct, a little off because link lengths are not precise.
+x is wrong because this is just adding up coords. 
+y is correct, a little off because link lengths are not precise.
 */
 void getEFXCoords(){ 
   int len = sizeof(jointsList)/sizeof(int); //sizeof(int) is some C peculiarity that is needed to return a human readable size
@@ -209,6 +209,12 @@ void getEFXCoords(){
   for(int i=0; i<len; i++){
     xfx += jointsList[i] -> coords[0];
     yfx += jointsList[i] -> coords[1];
+    //xfx = yfx * sin(degreesToRadians(theta));    // < -- need an angle? 
+    /*If I use this, then I would need the angle for the line from the base to the efx position.
+      Probably going to have to recalculate everything, everytime anything moves. 
+      How to shift a link whose position only changes because some link before it has moved?
+          treat the entire arm like it has 2 links, 
+          where one link represents the part before the moving joint, and the other the part after the joint??? idfk... */
   }
   Serial.print("End Effector: (");
   Serial.print(xfx);
