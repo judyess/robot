@@ -20,7 +20,7 @@
       0.5"
     Motor 4 (wrist-x) HiWonder LFD-06
       180 degrees
-      2"
+      1.5"
     Motor 5 (end effector) Generic/Unknown
       90 degrees
       4.5"
@@ -79,6 +79,8 @@
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
 int motorSpeed = 5; // used in position-setting functions to slow the motor down
+int minTicks = 122;
+int maxTicks = 614;
 
 // starting tick positions
 float tickPos0 = 368;
@@ -93,12 +95,18 @@ struct joint{
   float length;         // physical length of a link. 
   float jointPosition;  // position of motor angle in ticks
 };
+
+const float ybase=0;
+const float xbase=3.5;
 // joint objects
-joint base = {0, {0, 4, 0}, 4, tickPos0};
+joint base = {0, {ybase, ybase, 0}, 3.5, tickPos0}; // coords are fixed. Need to put this in the code.
 joint link1 = {1, {0, 5, 0}, 5, tickPos1};
 joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
 joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
-joint link4 = {4, {0, 4.5, 0}, 4.5, tickPos4};
+joint link4 = {4, {0, 2, 0}, 2, tickPos4};
+joint efx = {5, {0, 4.5, 0}, 4.5, tickPos4};
+
+joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 
 void setup() {
   Serial.begin(9600); 
@@ -112,7 +120,6 @@ void setup() {
   Serial.println(" ");
   Serial.println("start");
 }
-
 /* WORKS
 Parameters: an angle in degrees
   converts an angle(degrees) to a pulse(seconds), then to a pulse(ticks)
@@ -123,17 +130,15 @@ int convertToTicks(float degrees){
   int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
   return ticks;
 }
-
 /* WORKS
 Parameters: angle in ticks
   converts ticks to degrees
 Returns: float degrees
 */
 float convertToDegrees(float ticks){ 
-  float degrees = map(ticks, 122, 614, 0, 180);
+  float degrees = map(ticks, minTicks, maxTicks, 0, 180);
   return degrees;
 }
-
 /* WORKS
 Parameters: a joint object, and a DEGREE value
   converts degrees to ticks, sets position, and updates joint -> jointPosition 
@@ -181,74 +186,59 @@ void setTickPosition(joint *joint, float ticks){
   }
 }
 
-void getPosition(int i, float theta){
-  joint *link;
-  if (i == 0){
-    link = &base;
-  }
-  if (i == 1){
-    link = &link1;
-  }
-  if (i == 2){
-    link = &link2;
-  }
-  if(i == 3){
-    link = &link3;
-  }
-  if (i == 4){
-    link = &link4;
-  }
-  float betaB = 90 - theta; // this gets the angle complementary to theta. Same as just using theta and cos. 
-  float distance = link->length * sin(degreesToRadians(betaB)); // WORKS
+void getCoords(joint *link, float theta){
+  float distance = link->length * cos(degreesToRadians(theta)); // WORKS
   link -> coords[0] = abs(distance); // should this be absolute?
-  Serial.print(" x: ");
-  Serial.println(link -> coords[0]);
-
+  Serial.print("Coords: (");
+  Serial.print(link -> coords[0]);
+  Serial.print(", ");
   float height = link->length * (sin(degreesToRadians(theta))); //WORKS
   link -> coords[1] = abs(height); // should this be absolute?
   Serial.print(" y: ");
-  Serial.println(link -> coords[1]);
+  Serial.print(link -> coords[1]);
+  Serial.println(")");
+}
+/*
+Y is wrong because this is just adding up coords. 
+x is correct, a little off because link lengths are not precise.
+*/
+void getEFXCoords(){ 
+  int len = sizeof(jointsList)/sizeof(int); //sizeof(int) is some C peculiarity that is needed to return a human readable size
+  float xfx=0; 
+  float yfx=0;
+  for(int i=0; i<len; i++){
+    xfx += jointsList[i] -> coords[0];
+    yfx += jointsList[i] -> coords[1];
+  }
+  Serial.print("End Effector: (");
+  Serial.print(xfx);
+  Serial.print(", ");
+  Serial.print(yfx);
+  Serial.println(")");
 }
 
-void checkPulse(int pin, float angle) { // a test function
+void checkPulse(joint *link, float angle) { // a test function
   int pulse_ticks, degreePulse;
+  Serial.println("-----");
+  Serial.print("Motor ");
+  Serial.print(link -> pin);
+  Serial.print(": ");
   Serial.println(angle);
-  joint *link; // using if statements bc too lazy to pass objects rn
-  if (pin == 0){
-    link = &base;
-  }
-  if (pin == 1){
-    link = &link1;
-  }
-  if (pin == 2){
-    link = &link2;
-  }
-  if(pin == 3){
-    link = &link3;
-  }
-  if (pin == 4){
-    link = &link4;
-  }
   pulse_ticks = convertToTicks(angle);
   float current = link -> jointPosition; 
   if(current < pulse_ticks){
     for(float pos = current; pos <= pulse_ticks; pos+=1){
-      pwm.setPWM(pin, 0, pos);
-      link -> jointPosition = pos;
-      delay(motorSpeed);
+      setTickPosition(link, pos);
     }
   }
   if(current > pulse_ticks){
     for(float pos = current; pos >= pulse_ticks; pos-=1){
-      pwm.setPWM(pin, 0, pos);
-      link -> jointPosition = pos;
-      delay(motorSpeed);
+      setTickPosition(link, pos);
     }
   }
-  Serial.print("-----");
-  Serial.print("Motor: ");
-  Serial.println(pin);
-  getPosition(pin, angle);
+  getCoords(link, angle);
+  getEFXCoords();
+  Serial.println("-----");
 }
 
 // called by L2parallel() 
@@ -302,7 +292,7 @@ void l2Parallel(float angle){
 void loop() {
   float pin, angle;
   //int i;
-  joint *joint;
+  joint *link;
   angle = 0;
   while(Serial.available() > 0)
   {
@@ -310,9 +300,25 @@ void loop() {
     angle = Serial.parseInt();
     //i = Serial.parseInt();
     char r = Serial.read();
-    if(r == '\n'){}
-    //checkPulse(pin,angle);
-    l2Parallel(angle);
+    if (pin == 0){
+      link = &base;
+    }
+    if (pin == 1){
+      link = &link1;
+    }
+    if (pin == 2){
+      link = &link2;
+    }
+    if(pin == 3){
+      link = &link3;
+    }
+    if (pin == 4){
+      link = &link4;
+    }
+      if(r == '\n'){}
+    
+    checkPulse(link,angle);
+    //l2Parallel(angle);
   }
 }
 
