@@ -110,57 +110,29 @@ void loop() {
 // --------------------REWRITING AREA--------------------------
 
 // Trying to rewrite this function to take any link but if I pass an object, I have to find a way to reference the connecting link
-void l2Parallel(joint *joint, float angle){ //Keep L2 parallel to floor. --WORKS--
-  float theta1, theta2;
-  joint *linkp, *linkq;
-  theta1 = angle;
 
-  /*
-    When |L1 - L2| = 90, L2 will be parallel to the base. The if-statements are written out so I know if the links are to the left or right of the 90 degree position.
-  */
-  if (theta1 < 90){
-    theta2 = 180 - (90 - theta1);
-  }
-  if (theta1 > 90){
-    theta2 = theta1 - 90;
-  }
-  if(theta1 == 90){
-    theta2 = 90;
-  }
-  // Link1
-  int pwm1 = degreeToPWM(theta1);
-  float currentPos = linkp -> motorAngle; 
+void l2Parallel(float angle){
+  float theta1, theta2;
+  theta1 = angle;
+  Serial.println("---------------");
+  joint *linkp, *linkq;
+  linkp = &base;
+  linkq = &link1;
+  int pwm1 = convertToTicks(theta1);
+  float currentPos = linkp -> jointPosition; 
   if(currentPos < pwm1){
     for(float pos = currentPos; pos <= pwm1; pos+=1){
-      pwm.setPWM(0, 0, pos);
-      linkp -> motorAngle = pos;
-      delay(delayTime);
+      float betaTicks = calculateBeta(pos);
+      setTickPosition(linkp, pos);
+      setTickPosition(linkq, betaTicks);
     }
   }
   if(currentPos > pwm1){
     for(float pos = currentPos; pos >= pwm1; pos-=1){
-      pwm.setPWM(0, 0, pos);
-      linkp -> motorAngle = pos;
-      delay(delayTime);
-    }
-  }
-  // Link2
-  int pwm2 = degreeToPWM(theta2);
-  float currentPos2 = linkq -> motorAngle; 
-  if(currentPos2 < pwm2){
-    for(float pos2 = currentPos2; pos2 <= pwm2; pos2 += 1){
-      pwm.setPWM(1, 0, pos2);
-      linkq -> motorAngle = pos2;
-      delay(delayTime);
-    }
-  }
-  if(currentPos2 > pwm2){
-    for(float pos2 = currentPos2; pos2 >= pwm2; pos2 -= 1){
-      pwm.setPWM(1, 0, pos2);
-      linkq -> motorAngle = pos2;
-      delay(delayTime);
+      float betaTicks = calculateBeta(pos);
+      setTickPosition(linkp, pos);
+      setTickPosition(linkq, betaTicks);
     }
   }
 }
-
 

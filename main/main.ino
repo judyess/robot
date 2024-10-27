@@ -1,8 +1,11 @@
-/* Written for a 6-DOF manipulator. 
+/* Written for a 6-DOF manipulator. Currently only focused x,y coords. 
+
+  Note: Servos are connected to a PCA 9685 in case I want to expand the number of servos.
+        And because I have my servos connected to PCA 9685, I have to refer to its position in terms of PWM instead of Degrees.
+        Which is why I'm using the Adafruit library instead of Arduino's Servo library.
 
   PHYSICAL INFO: (motors physically actually have a 200 degree range)
     6-8.4v
-
     Motor 0 (base) 25Kg DSServo, model ?
       180 degrees
       4"
@@ -12,10 +15,10 @@
     Motor 2 (link) HiWonder LDX-218
       180 degrees
       3.5"
-    Motor 3 (wrist) HiWonder LFD-06
+    Motor 3 (wrist-y) HiWonder LFD-06
       180 degrees
       0.5"
-    Motor 4 (wrist) HiWonder LFD-06
+    Motor 4 (wrist-x) HiWonder LFD-06
       180 degrees
       2"
     Motor 5 (end effector) Generic/Unknown
@@ -23,8 +26,9 @@
       4.5"
 
 
-  REMINDERS:
-    SERVO L1 and SERVO L2 are physically positioned opposite of eachother. (This will affect the if-statements in the setDegreePosition() function if I change them.)
+  REMINDERS/TODO:
+    SERVO L1 and SERVO L2 are physically positioned opposite of eachother. 
+      (This will affect the if-statements in both setPosition() functions if I change them.)
       L1 0    leans towards the "butt"   L1 180  leans away from the "butt"
       L2 180  leans towards the "butt"   L2 0    leans away from the "butt"
     
@@ -36,7 +40,7 @@
 
     Link 1 == Link 2, when Joint 2 = 90 degrees
     Link 2 is parallel to the base when |Joint1 - Joint2| = 90
-    Link 2 is perpendicular to the base when Joint2 == Joint1
+    Link 2 is perpendicular to the base when Joint2 == Joint1  (this might change if I physically flip the motors, idk)
     Since, 
       Link 1 is perpendicular to the Z-axis whenever Joint1 = 0 or Joint1 = 180
     then for Link 2 with a z-axis equal to Link 1,  
@@ -63,7 +67,6 @@
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
-#include <Servo.h>
 #include <math.h>
 
 #define MIN_PULSE_WIDTH       500 
@@ -75,35 +78,32 @@
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-int delayTime = 5;
+int motorSpeed = 5; // used in position-setting functions to slow the motor down
 
-// tick positions ; 368 is 90 degrees
+// starting tick positions
 float tickPos0 = 368;
 float tickPos1 = 368;
 float tickPos2 = 368;
 float tickPos3 = 368; 
 float tickPos4 = 368;
 
-
 struct joint{
-  int pin;              // physical pin connection on the PCA 9685.
-  float coords[3];      // position on frame-i xyz. coords[3] = {x, y, z}
+  int pin;              // physical pin on the PCA 9685.
+  float coords[3];      // position on its own localized frame. coords[3] = {x, y, z}
   float length;         // physical length of a link. 
-  float jointPosition;    // position of motor angle. check if/when this ever switches between holding tick values or degree values !!!
+  float jointPosition;  // position of motor angle in ticks
 };
-
 // joint objects
-joint base = {0, {0, 0, 0}, 0, tickPos0};
-joint link1 = {1, {0, 4.75, 0}, 4.75, tickPos1};
+joint base = {0, {0, 4, 0}, 4, tickPos0};
+joint link1 = {1, {0, 5, 0}, 5, tickPos1};
 joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
-joint link3 = {3, {0, 0, 0}, 4, tickPos3};
-joint link4 = {4, {0, 0, 0}, 0, tickPos4};
+joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
+joint link4 = {4, {0, 4.5, 0}, 4.5, tickPos4};
 
 void setup() {
   Serial.begin(9600); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
-  //readySet();
   pwm.setPWM(base.pin,0,base.jointPosition);
   pwm.setPWM(1,0,tickPos1);
   pwm.setPWM(2,0,tickPos2);
@@ -113,27 +113,31 @@ void setup() {
   Serial.println("start");
 }
 
-/*
-Parameters: an angle
+/* WORKS
+Parameters: an angle in degrees
   converts an angle(degrees) to a pulse(seconds), then to a pulse(ticks)
 Returns: int ticks
 */
-float convertToTicks(float degrees){ // --WORKS--
+int convertToTicks(float degrees){
   float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
   int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
-  //Serial.print("Ticks: ");
-  //Serial.println(ticks);
   return ticks;
 }
 
-float convertToDegrees(float ticks){
+/* WORKS
+Parameters: angle in ticks
+  converts ticks to degrees
+Returns: float degrees
+*/
+float convertToDegrees(float ticks){ 
   float degrees = map(ticks, 122, 614, 0, 180);
   return degrees;
 }
 
-/*
+/* WORKS
 Parameters: a joint object, and a DEGREE value
-converts the angle to tick-pulses and incrementally sets a new position
+  converts degrees to ticks, sets position, and updates joint -> jointPosition 
+Calls: convertToTicks()
 */
 void setDegreePosition(joint *joint, float newAngle){
   float newPosition = convertToTicks(newAngle);
@@ -144,19 +148,40 @@ void setDegreePosition(joint *joint, float newAngle){
     for(float updatedPosition = previousPosition; updatedPosition < newPosition; updatedPosition++){
       pwm.setPWM(joint -> pin, 0, updatedPosition);
       joint -> jointPosition = updatedPosition;
-      delay(delayTime);
+      delay(motorSpeed);
     }
   }
   if(previousPosition > newPosition){
     for(float updatedPosition = previousPosition; updatedPosition > newPosition; updatedPosition--){
       pwm.setPWM(joint -> pin, 0, updatedPosition);
       joint -> jointPosition = updatedPosition;
-      delay(delayTime);
+      delay(motorSpeed);
+    }
+  }
+}
+/*
+Parameters: joint object, ticks
+  Sets position and updates joint -> jointPosition 
+*/
+void setTickPosition(joint *joint, float ticks){
+  float previousPosition = joint -> jointPosition; 
+  if(previousPosition < ticks){
+    for(float updatedPosition = previousPosition; updatedPosition < ticks; updatedPosition++){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(motorSpeed);
+    }
+  }
+  if(previousPosition > ticks){
+    for(float updatedPosition = previousPosition; updatedPosition > ticks; updatedPosition--){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(motorSpeed);
     }
   }
 }
 
-void getPosition(float theta, int i){
+void getPosition(int i, float theta){
   joint *link;
   if (i == 0){
     link = &base;
@@ -173,7 +198,7 @@ void getPosition(float theta, int i){
   if (i == 4){
     link = &link4;
   }
-  float betaB = 90 - theta; // this gets the angle complementary to theta
+  float betaB = 90 - theta; // this gets the angle complementary to theta. Same as just using theta and cos. 
   float distance = link->length * sin(degreesToRadians(betaB)); // WORKS
   link -> coords[0] = abs(distance); // should this be absolute?
   Serial.print(" x: ");
@@ -205,27 +230,28 @@ void checkPulse(int pin, float angle) { // a test function
     link = &link4;
   }
   pulse_ticks = convertToTicks(angle);
-  float current = link -> jointPosition; // initializes a reference variable to the current position
+  float current = link -> jointPosition; 
   if(current < pulse_ticks){
     for(float pos = current; pos <= pulse_ticks; pos+=1){
       pwm.setPWM(pin, 0, pos);
       link -> jointPosition = pos;
-      delay(delayTime);
+      delay(motorSpeed);
     }
   }
   if(current > pulse_ticks){
     for(float pos = current; pos >= pulse_ticks; pos-=1){
       pwm.setPWM(pin, 0, pos);
       link -> jointPosition = pos;
-      delay(delayTime);
+      delay(motorSpeed);
     }
   }
   Serial.print("-----");
   Serial.print("Motor: ");
   Serial.println(pin);
-  getPosition(angle, pin);
+  getPosition(pin, angle);
 }
 
+// called by L2parallel() 
 float calculateBeta(float theta){
   float beta;
   theta = convertToDegrees(theta);
@@ -241,41 +267,14 @@ float calculateBeta(float theta){
   int pwm2 = convertToTicks(beta);
   return pwm2;
 }
-
-
-// L2 = L1
-void l2equalL1(float angle){ //linearly equivalent. 
-  float theta2;
-  theta2 = 90;
-}
-// L2 always perpendicular to floor
-void l2Perpendicular(float angle){ 
-  float theta1, theta2;
-  theta1 = convertToTicks(angle);
-  theta2 = theta1;
-  pwm.setPWM(0, 0, theta1);
-  pwm.setPWM(0, 0, theta2);
-}
-
-void setTickPosition(joint *joint, float ticks){
-  float previousPosition = joint -> jointPosition; 
-  if(previousPosition < ticks){
-    for(float updatedPosition = previousPosition; updatedPosition < ticks; updatedPosition++){
-      pwm.setPWM(joint -> pin, 0, updatedPosition);
-      joint -> jointPosition = updatedPosition;
-      delay(delayTime);
-    }
-  }
-  if(previousPosition > ticks){
-    for(float updatedPosition = previousPosition; updatedPosition > ticks; updatedPosition--){
-      pwm.setPWM(joint -> pin, 0, updatedPosition);
-      joint -> jointPosition = updatedPosition;
-      delay(delayTime);
-    }
-  }
-}
-
-void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS-- Hard coded
+/* WORKS. is hardcoded to pins 0 and 1.
+Parameters: an angle in degrees
+  Takes user input to set Link 1's position. 
+Calls: calculateBeta() to keep Link 2 parallel to the floor.
+Note: Link 2 is parallel to the floor when joint 2 is 90 degrees from the Z-axis -or- when |joint 1 - joint 2| = 90
+      (!) Use this same concept when I need to move the end effector along a line
+*/
+void l2Parallel(float angle){
   float theta1, theta2;
   theta1 = angle;
   Serial.println("---------------");
@@ -302,7 +301,7 @@ void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS-- Hard coded
 
 void loop() {
   float pin, angle;
-  int i;
+  //int i;
   joint *joint;
   angle = 0;
   while(Serial.available() > 0)
@@ -316,3 +315,22 @@ void loop() {
     l2Parallel(angle);
   }
 }
+
+
+/* UNUSED
+
+// Link 2 = Link 1; linearly equivalent. 
+void l2equalL1(float angle){ 
+  float theta2;
+  theta2 = 90;
+}
+// Joint 2 = Joint 1, always perpendicular to floor
+void l2Perpendicular(float angle){ 
+  float theta1, theta2;
+  theta1 = convertToTicks(angle);
+  theta2 = theta1;
+  pwm.setPWM(0, 0, theta1);
+  pwm.setPWM(0, 0, theta2);
+}
+
+*/

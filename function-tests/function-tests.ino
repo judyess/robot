@@ -14,7 +14,6 @@
 #define PI 3.1415926535897932384626433832795
 
 float totalPos[2];
-
 struct linkObj{
   int pin;
   float length;
@@ -22,11 +21,9 @@ struct linkObj{
   float globalCoords[2]; // RENAMED
   float tickPos;
 };
-
 linkObj link0 = {0, 5, {0, 5}, {0,5}, 368};
 linkObj link1 = {0, 3.5, {0, 3.50}, {0,8.5}, 368};
 linkObj link2 = {0, 6.5, {0, 6.5}, {0,15}, 368};
-
 linkObj *linksList[3] = {&link0, &link1, &link2};
 
 // Printing functions just for testing values
@@ -51,7 +48,6 @@ void printAllLocal(){
      printCoords(x, y);
   }
 }
-
 void printAllGlobal(){
   int size = sizeof(linksList)/sizeof(int);
   int i;
@@ -112,10 +108,8 @@ void accumulate(){
   printCoords(totalPos[0], totalPos[1]);
 }
 
-/*
-  Calculates the local coords of a link from a given angle. 
-  THIS IS REDUNDANT.
-*/
+/* Calculates the local coords of a link from a given angle. 
+  THIS IS REDUNDANT */
 void degreesToCoords(linkObj *link, float angle){ 
   Serial.println("DegreesToCoords");
   Serial.print("length: ");
@@ -127,11 +121,13 @@ void degreesToCoords(linkObj *link, float angle){
   updateLocal(link, x, y);
 }
 
-// ------------------------------------------MAIN------------------------------------
+void calculateLine(){
+  
+}
+// ------------------------------------------------------------------------------
 void setup() {
   Serial.begin(19200);
 }
-
 void loop() {
   linkObj *var;
   float link, angle, x, y;
@@ -161,7 +157,6 @@ void loop() {
       accumulate();
       printAllGlobal();
       //coordsToDegEFX();
-      
       //test(link, angle);
     }
 }
