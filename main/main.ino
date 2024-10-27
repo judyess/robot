@@ -1,6 +1,6 @@
 /* Written for a 6-DOF manipulator. 
 
-  PHYSICAL INFO:
+  PHYSICAL INFO: (motors physically actually have a 200 degree range)
     6-8.4v
 
     Motor 0 (base) 25Kg DSServo, model ?
@@ -24,7 +24,7 @@
 
 
   REMINDERS:
-    SERVO L1 and SERVO L2 are physically positioned opposite of eachother. (This will affect the if-statements in the setPosition() function if I change them.)
+    SERVO L1 and SERVO L2 are physically positioned opposite of eachother. (This will affect the if-statements in the setDegreePosition() function if I change them.)
       L1 0    leans towards the "butt"   L1 180  leans away from the "butt"
       L2 180  leans towards the "butt"   L2 0    leans away from the "butt"
     
@@ -79,7 +79,7 @@ int delayTime = 5;
 
 // tick positions ; 368 is 90 degrees
 float tickPos0 = 368;
-float tickPos1 = 122;
+float tickPos1 = 368;
 float tickPos2 = 368;
 float tickPos3 = 368; 
 float tickPos4 = 368;
@@ -109,30 +109,33 @@ void setup() {
   pwm.setPWM(2,0,tickPos2);
   pwm.setPWM(3,0,tickPos3); 
   pwm.setPWM(4,0,tickPos4); 
+  Serial.println(" ");
   Serial.println("start");
 }
-
-
-
 
 /*
 Parameters: an angle
   converts an angle(degrees) to a pulse(seconds), then to a pulse(ticks)
 Returns: int ticks
 */
-float convertToTicks(float angle){ // --WORKS--
-  float pulse = map(angle, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
+float convertToTicks(float degrees){ // --WORKS--
+  float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
   int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
-  Serial.print("Ticks: ");
-  Serial.println(ticks);
+  //Serial.print("Ticks: ");
+  //Serial.println(ticks);
   return ticks;
+}
+
+float convertToDegrees(float ticks){
+  float degrees = map(ticks, 122, 614, 0, 180);
+  return degrees;
 }
 
 /*
 Parameters: a joint object, and a DEGREE value
 converts the angle to tick-pulses and incrementally sets a new position
 */
-void setPosition(joint *joint, float newAngle){
+void setDegreePosition(joint *joint, float newAngle){
   float newPosition = convertToTicks(newAngle);
   float previousPosition = joint -> jointPosition; 
   Serial.print("Setting position: ");
@@ -222,65 +225,24 @@ void checkPulse(int pin, float angle) { // a test function
   Serial.println(pin);
   getPosition(angle, pin);
 }
-// LINKS ARE HARD CODED
-void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS--
-  float theta1, theta2;
-  theta1 = angle;
-  /*
-    When |L1 - L2| = 90, then L2 will be parallel to the base. Do this better.
-  */
-  if (theta1 < 90){
-    theta2 = 180 - (90 - theta1);
+
+float calculateBeta(float theta){
+  float beta;
+  theta = convertToDegrees(theta);
+  if (theta < 90){
+    beta = 180 - (90 - theta);
   }
-  if (theta1 > 90){
-    theta2 = theta1 - 90;
+  if (theta > 90){
+    beta = theta - 90;
   }
-  if(theta1 == 90){
-    theta2 = 90;
+  if(theta == 90){
+    beta = 90;
   }
-  Serial.print("theta1: ");
-  Serial.println(theta1);
-  Serial.print("theta2: ");
-  Serial.println(theta2);
-  joint *linkp, *linkq;
-  linkp = &base;
-  linkq = &link1;
-  // Link1
-  int pwm1 = convertToTicks(theta1);
-  float currentPos = linkp -> jointPosition; 
-  if(currentPos < pwm1){
-    for(float pos = currentPos; pos <= pwm1; pos+=1){
-      pwm.setPWM(0, 0, pos);
-      linkp -> jointPosition = pos;
-      delay(delayTime);
-    }
-  }
-  if(currentPos > pwm1){
-    for(float pos = currentPos; pos >= pwm1; pos-=1){
-      pwm.setPWM(0, 0, pos);
-      linkp -> jointPosition = pos;
-      delay(delayTime);
-    }
-  }
-  // Link2
-  int pwm2 = convertToTicks(theta2);
-  float currentPos2 = linkq -> jointPosition; 
-  if(currentPos2 < pwm2){
-    for(float pos2 = currentPos2; pos2 <= pwm2; pos2 += 1){
-      pwm.setPWM(1, 0, pos2);
-      linkq -> jointPosition = pos2;
-      delay(delayTime);
-    }
-  }
-  if(currentPos2 > pwm2){
-    for(float pos2 = currentPos2; pos2 >= pwm2; pos2 -= 1){
-      pwm.setPWM(1, 0, pos2);
-      linkq -> jointPosition = pos2;
-      delay(delayTime);
-    }
-  }
-  Serial.println("---------------");
+  int pwm2 = convertToTicks(beta);
+  return pwm2;
 }
+
+
 // L2 = L1
 void l2equalL1(float angle){ //linearly equivalent. 
   float theta2;
@@ -295,6 +257,48 @@ void l2Perpendicular(float angle){
   pwm.setPWM(0, 0, theta2);
 }
 
+void setTickPosition(joint *joint, float ticks){
+  float previousPosition = joint -> jointPosition; 
+  if(previousPosition < ticks){
+    for(float updatedPosition = previousPosition; updatedPosition < ticks; updatedPosition++){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(delayTime);
+    }
+  }
+  if(previousPosition > ticks){
+    for(float updatedPosition = previousPosition; updatedPosition > ticks; updatedPosition--){
+      pwm.setPWM(joint -> pin, 0, updatedPosition);
+      joint -> jointPosition = updatedPosition;
+      delay(delayTime);
+    }
+  }
+}
+
+void l2Parallel(float angle){ //Keep L2 parallel to floor. --WORKS-- Hard coded
+  float theta1, theta2;
+  theta1 = angle;
+  Serial.println("---------------");
+  joint *linkp, *linkq;
+  linkp = &base;
+  linkq = &link1;
+  int pwm1 = convertToTicks(theta1);
+  float currentPos = linkp -> jointPosition; 
+  if(currentPos < pwm1){
+    for(float pos = currentPos; pos <= pwm1; pos+=1){
+      float betaTicks = calculateBeta(pos);
+      setTickPosition(linkp, pos);
+      setTickPosition(linkq, betaTicks);
+    }
+  }
+  if(currentPos > pwm1){
+    for(float pos = currentPos; pos >= pwm1; pos-=1){
+      float betaTicks = calculateBeta(pos);
+      setTickPosition(linkp, pos);
+      setTickPosition(linkq, betaTicks);
+    }
+  }
+}
 
 void loop() {
   float pin, angle;
@@ -308,7 +312,7 @@ void loop() {
     //i = Serial.parseInt();
     char r = Serial.read();
     if(r == '\n'){}
-    checkPulse(pin,angle);
-    //l2Parallel(angle);
+    //checkPulse(pin,angle);
+    l2Parallel(angle);
   }
 }
