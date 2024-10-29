@@ -7,39 +7,32 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 import math
-#plt.style.use('_mpl-gallery')           #Remove this line to see a regular coord frame
 
-# use zip() which will pair 
 
 class Link:
-    def __init__(self, id, origin, endpoint, linkLength):
-        self.id = id
+    def __init__(self, pin, origin, endpoint, linkLength):
+        self.pin = pin
         self.origin = origin
         self.endpoint = endpoint
-        self.vector = ((self.origin[0], self.endpoint[0]), [self.origin[1], self.endpoint[1]]) # because plot([x], [y]) and "[x],[y]" = (x[i], y[i])
-        self.linkLength = 0
+        self.linkLength = linkLength
 
-link1 = Link("link1", (1, 2), (2, 6), 4)
+# defining the robit; Need to define next links origin == last links endpoint
+link1 = Link(0, (1, 2,0), (5, 6,0), 4)
+link2 = Link(1, (5,6,0), (3,4,0), 3.75)
 
-origin = [1,2]
-endpoint = [2, 6]
+arm = [[(link1.origin), (link1.endpoint)], [link2.origin, link2.endpoint]]
 
-segments = [
-    [(0, 0, 0), (1, 1, 1)],
-    [(1, 1, 1), (2, 2, 2)],
-    [(2, 2, 2), (3, 3, 3)]
-]
-# Create a figure and axes
+
+# plot stuff
 fig = plt.figure()
 ax2 = fig.add_subplot(projection='3d')
 
-# Plot each line segment
-for segment in segments:
-    x, y, z = zip(*segment)
+for link in arm:
+    x, y, z = zip(*link)
     ax2.plot(x, y, z)
     ax2.scatter(x, y, z, c='red', s=100)
 
-# Set labels
+# Graph stuff
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
