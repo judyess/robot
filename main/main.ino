@@ -99,7 +99,7 @@ struct joint{
 const float ybase=0;
 const float xbase=3.5;
 // joint objects
-joint base = {0, {ybase, ybase, 0}, 3.5, tickPos0}; // coords are fixed. Need to put this in the code.
+joint base = {0, {xbase, ybase, 0}, 3.5, tickPos0}; // coords are fixed. Need to put this in the code.
 joint link1 = {1, {0, 5, 0}, 5, tickPos1};
 joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
 joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
