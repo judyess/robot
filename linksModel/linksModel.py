@@ -1,6 +1,9 @@
 """
-Link.allLinks = array of all Link objects
+Writing a model of my robot project because physically testing, retesting and 
+    whipping out measuring tape was getting annoying.
+Also, learning how to use Matplotlib is cool too.
 
+Link.allLinks = array of all Link objects
 """
 
 from matplotlib import pyplot as plt
