@@ -33,33 +33,64 @@ class Link:
                     self.origin = self.linkLength
         """
 
+# probably an excessive thing
+class Rotation:
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+"""
+    Math part to-do:
+    
+    90 degree rotation matrix from 0,0:
+    [-1, 0, 0]
+    [ 0, 1, 0]
+    [ 0, 0, 0]
+"""
+rotate90 = Rotation((np.array([-1,0,0])),(np.array([0,1,0])),np.array(([0,0,0])))
+
+testMatrix = ((rotate90.x*3), (rotate90.y*4)) # Correctly returns a point that shifts (3,4) but from an origin = (0,0). Need to add more so the origin = the links origin
+
+print(testMatrix)
+
+# plot stuff
+fig = plt.figure()
+ax = fig.add_subplot()
+#ax = fig.add_subplot(projection='3d')
+ax.plot(testMatrix[0][0], testMatrix[1][1])
+ax.scatter(testMatrix[0][0], testMatrix[1][1], c='red', s=100) # Just adds a dot to the points
+
 
 # defining the robit; Need to define next links origin == last links endpoint
 link1 = Link(0, (1, 2,0), (5, 6,0), 4)
-link2 = Link(1, (5,6,0), (3,4,0), 3.75)
+link2 = Link(1, (5,6,0), (3,4,3), 3.75)
 
 arm = []
-
 for link in Link.allLinks:
     arm.append([link.origin, link.endpoint])
 
 print(arm)
 
-# plot stuff
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
 
+''' 3D PLOT
 for link in arm:
     x, y, z = zip(*link)                                                        # Zip
     ax.plot(x, y, z)
-    ax.scatter(x, y, z, c='red', s=100)
+    ax.scatter(x, y, z, c='red', s=100) # Just adds a dot to the points
+'''
+
+# a 2D plotter for ease of view in the graph while testing the math
+for link in arm:
+    x, y, z = zip(*link)                                                        # Zip
+    ax.plot(x, y)
+    ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
 # Graph stuff
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-ax.set_xlim(0, 15)
-ax.set_ylim(0, 15)
-ax.set_zlim(0, 15)
+#ax.set_zlabel('Z')
+ax.set_xlim(-10, 10)
+ax.set_ylim(-10, 10)
+#ax.set_zlim(-10, 10)
 
 plt.show()
