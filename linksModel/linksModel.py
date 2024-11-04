@@ -5,6 +5,8 @@ Also, learning how to use Matplotlib is cool too.
 
 Link.allLinks = array of all Link objects
 
+!!! Everything has to be redefined
+
 To-Do: 
 1. Find a way to map links to eachother better 
     instead of looping through the entire list of links
@@ -26,23 +28,29 @@ ax = fig.add_subplot()
 class Link:
     allLinks = []
     def __init__(self, origin, endpoint, pin = len(allLinks)):
+        Link.allLinks.append(self) # any new Link object is added to a list. The list is going to be used for defining relationships between links and stuff.
         self.origin = origin
         self.endpoint = endpoint
         self.pin = pin
-        Link.allLinks.append(self) # any new Link object is added to a list.
-
-
+        
 
 # defining the robit; Need to define next links origin == last links endpoint
-link1 = Link((0, 0, 0), (3, 4, 0))
-link2 = Link(link1.endpoint, (5,6,0))
+def printArm(link):
+    print(link.origin)
+    print(link.endpoint)
+    print(link.pin)
 
-originalArm = []
-def printArm():
-    arm = []
-    for link in Link.allLinks:
-        arm.append([link.origin, link.endpoint])
-    print(arm)
+link1 = Link((0, 0, 0), (3, 4, 0), len(Link.allLinks))
+link2 = Link(link1.endpoint, (5,6,0), len(Link.allLinks))
+print(link1.pin)
+print(link2.pin)
+for link in Link.allLinks:
+    printArm(link)
+
+arm = []
+for link in Link.allLinks:
+    arm.append([link.origin, link.endpoint])
+print(arm)
 
 ''' 3D PLOT
 for link in arm:
@@ -53,16 +61,14 @@ for link in arm:
 # a 2D plotter for ease of view in the graph while testing the math
 
 def plotArm():
-    for link in Link.allLinks:
-        coords = [([link.origin, link.endpoint, 0])]
-        x, y, z = zip(*coords)                                                        # Zip
+    for link in arm:
+        x, y, z = zip(*link)                                                        # Zip
         ax.plot(x, y)
         ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
 
 
 newLinks = []
-# I think this is correct. 
 # Need to redefine how the links are related and loop through all links in the arm.
 # angle is hard coded
 def rotateLink(link):
@@ -82,21 +88,20 @@ def rotateLink(link):
     y2 = link.endpoint[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 90
+    theta = 45
     radians = (theta*math.pi)/180
     # rotates a single link, then adds it back to the arm (using x1, y1)
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
     newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
     
     if link.pin >= 1:
-        newOrigin = Link.allLinks[len(newLinks) - 1].endpoint
+        newOrigin = newLinks[len(newLinks) - 1].endpoint
     else:
         newOrigin = link.origin
 
-
-    Link.allLinks[link.pin].origin = newOrigin
-    Link.allLinks[link.pin].endpoint = (newX, newY, 0)
-    plotLink(link)
+    newLink = Link(newOrigin, (newX, newY, 0), len(newLinks)+1)
+    newLinks.append(newLink)
+    plotLink(newLink)
 
 
 
@@ -116,12 +121,10 @@ def plotLink(link): #correctly connects the previous link to the current link
     plt.scatter((x, x2), (y, y2), c='black', s=100)
 
 
-printArm()
 plotArm()
-#Have to call this on links in order. Do it better.
+
 rotateLink(link1)
 rotateLink(link2)
-printArm()
 
 
 # Graph stuff
