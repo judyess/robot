@@ -36,33 +36,11 @@ class Link:
                     self.origin = self.linkLength
         """
 
-# probably an excessive thing
-class Rotation:
-    def __init__(self, x, y, z):
-        self.x = x
-        self.y = y
-        self.z = z
-"""
-    Math part to-do: 
-    1. rotate around a point
-    
-    90 degree rotation matrix from 0,0:
-    [-1, 0, 0]
-    [ 0, 1, 0]
-    [ 0, 0, 0]
-"""
-rotate90 = Rotation((np.array([-1,0,0])),(np.array([0,1,0])),np.array(([0,0,0])))
-testMatrix = ((rotate90.x*(3-2)), (rotate90.y*(4+2))) # Correctly returns a point that shifts (3,4) but from an origin = (0,0). Need to add more so the origin = the links origin
-print(testMatrix)
-
-ax.plot(testMatrix[0][0], testMatrix[1][1])
-ax.scatter(testMatrix[0][0], testMatrix[1][1], c='red', s=100) 
-
 
 
 # defining the robit; Need to define next links origin == last links endpoint
-link1 = Link(0, (1, 2,0), (5, 6,0), 4)
-link2 = Link(1, (5,6,0), (3,4,3), 3.75)
+link1 = Link(0, (0, 0, 0), (3, 4, 0), 4)
+link2 = Link(1, link1.endpoint, (5,6,0), 3.75)
 
 arm = []
 for link in Link.allLinks:
@@ -82,12 +60,74 @@ for link in arm:
     ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
 
+# probably an excessive thing
+class Rotation:
+    def __init__(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+"""
+    Math part to-do: 
+    1. rotate around a point
+    
+    90 degree rotation matrix from 0,0:
+    [-1, 0, 0]
+    [ 0, 1, 0]
+    [ 0, 0, 0]
+"""
+rotate90 = Rotation((np.array([-1,0,0])),(np.array([0,1,0])),np.array(([0,0,0])))
+
+
+newLinks = []
+# trying to rotate 2 arms by 90 degrees. Angle is hardcoded. 
+# currently rotates links individually by 90 degrees, but still from an origin of 0,0. (so each point is acting like a link from 0,0 to its EP)
+def rotateLink(link):
+    print("rotating")
+    print(link.endpoint)
+    if link.pin != 0:
+        previousX = Link.allLinks[link.pin-2].origin[0]
+        previousY = Link.allLinks[link.pin-2].origin[1]
+    else:
+        previousX = 0
+        previousY = 0
+    # 2nd new point is wrong
+    newX = rotate90.x * link.endpoint[0] #+ (link.origin[0] - previousX)
+    newY = rotate90.y * link.endpoint[1] #+ abs(link.origin[0] - link.origin[1])
+
+    if link.pin >= 1:
+        newOrigin = newLinks[len(newLinks) - 1].endpoint
+    else:
+        newOrigin = link.origin
+
+    newLink = Link(len(newLinks)+1, newOrigin, (newX[0], newY[1], 0), 0)
+    newLinks.append(newLink)
+    print(newLink.origin,", ", newLink.endpoint)
+    plotLink(newLink)
+
+def plotLink(link): #correctly connects the previous link to the current link
+    if link.pin > 1:
+        previousLink = newLinks[len(newLinks) - 1]
+    else:
+        previousLink = link
+
+    x = previousLink.origin[0]
+    y = previousLink.origin[1]
+    x2 = link.endpoint[0]
+    y2 = link.endpoint[1]
+    print(x2, ", ", y2)
+    plt.plot([x,x2], [y, y2])
+    plt.scatter((x, x2), (y, y2), c='black', s=100)
+    
+rotateLink(link1)
+rotateLink(link2)
+
+
 # Graph stuff
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 #ax.set_zlabel('Z')
-ax.set_xlim(-5, 7)
-ax.set_ylim(-5, 7)
+ax.set_xlim(-6, 10)
+ax.set_ylim(-6, 10)
 #ax.set_zlim(-10, 10)
 
 plt.show()
