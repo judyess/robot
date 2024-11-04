@@ -25,22 +25,24 @@ ax = fig.add_subplot()
 #ax = fig.add_subplot(projection='3d')
 class Link:
     allLinks = []
-    def __init__(self, pin, origin, endpoint, linkLength):
-        self.pin = pin
+    def __init__(self, origin, endpoint, pin = len(allLinks)):
         self.origin = origin
         self.endpoint = endpoint
-        self.linkLength = linkLength
-        Link.allLinks.append(self) # any new Link object is added to a list. The list is going to be used for defining relationships between links and stuff.
+        self.pin = pin
+        Link.allLinks.append(self) # any new Link object is added to a list.
+
 
 
 # defining the robit; Need to define next links origin == last links endpoint
-link1 = Link(0, (0, 0, 0), (3, 4, 0), 4)
-link2 = Link(1, link1.endpoint, (5,6,0), 3.75)
+link1 = Link((0, 0, 0), (3, 4, 0))
+link2 = Link(link1.endpoint, (5,6,0))
 
-arm = []
-for link in Link.allLinks:
-    arm.append([link.origin, link.endpoint])
-print(arm)
+originalArm = []
+def printArm():
+    arm = []
+    for link in Link.allLinks:
+        arm.append([link.origin, link.endpoint])
+    print(arm)
 
 ''' 3D PLOT
 for link in arm:
@@ -50,9 +52,10 @@ for link in arm:
 '''
 # a 2D plotter for ease of view in the graph while testing the math
 
-def printArm():
-    for link in arm:
-        x, y, z = zip(*link)                                                        # Zip
+def plotArm():
+    for link in Link.allLinks:
+        coords = [([link.origin, link.endpoint, 0])]
+        x, y, z = zip(*coords)                                                        # Zip
         ax.plot(x, y)
         ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
@@ -79,20 +82,21 @@ def rotateLink(link):
     y2 = link.endpoint[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 45
+    theta = 90
     radians = (theta*math.pi)/180
     # rotates a single link, then adds it back to the arm (using x1, y1)
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
     newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
     
     if link.pin >= 1:
-        newOrigin = newLinks[len(newLinks) - 1].endpoint
+        newOrigin = Link.allLinks[len(newLinks) - 1].endpoint
     else:
         newOrigin = link.origin
 
-    newLink = Link(len(newLinks)+1, newOrigin, (newX, newY, 0), 0)
-    newLinks.append(newLink)
-    plotLink(newLink)
+
+    Link.allLinks[link.pin].origin = newOrigin
+    Link.allLinks[link.pin].endpoint = (newX, newY, 0)
+    plotLink(link)
 
 
 
@@ -113,9 +117,11 @@ def plotLink(link): #correctly connects the previous link to the current link
 
 
 printArm()
-
+plotArm()
+#Have to call this on links in order. Do it better.
 rotateLink(link1)
 rotateLink(link2)
+printArm()
 
 
 # Graph stuff
