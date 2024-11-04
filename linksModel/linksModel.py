@@ -13,7 +13,10 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 import math
 
-
+# plot stuff
+fig = plt.figure()
+ax = fig.add_subplot()
+#ax = fig.add_subplot(projection='3d')
 class Link:
 
     allLinks = []
@@ -40,7 +43,8 @@ class Rotation:
         self.y = y
         self.z = z
 """
-    Math part to-do:
+    Math part to-do: 
+    1. rotate around a point
     
     90 degree rotation matrix from 0,0:
     [-1, 0, 0]
@@ -48,17 +52,12 @@ class Rotation:
     [ 0, 0, 0]
 """
 rotate90 = Rotation((np.array([-1,0,0])),(np.array([0,1,0])),np.array(([0,0,0])))
-
-testMatrix = ((rotate90.x*3), (rotate90.y*4)) # Correctly returns a point that shifts (3,4) but from an origin = (0,0). Need to add more so the origin = the links origin
-
+testMatrix = ((rotate90.x*(3-2)), (rotate90.y*(4+2))) # Correctly returns a point that shifts (3,4) but from an origin = (0,0). Need to add more so the origin = the links origin
 print(testMatrix)
 
-# plot stuff
-fig = plt.figure()
-ax = fig.add_subplot()
-#ax = fig.add_subplot(projection='3d')
 ax.plot(testMatrix[0][0], testMatrix[1][1])
-ax.scatter(testMatrix[0][0], testMatrix[1][1], c='red', s=100) # Just adds a dot to the points
+ax.scatter(testMatrix[0][0], testMatrix[1][1], c='red', s=100) 
+
 
 
 # defining the robit; Need to define next links origin == last links endpoint
@@ -68,9 +67,7 @@ link2 = Link(1, (5,6,0), (3,4,3), 3.75)
 arm = []
 for link in Link.allLinks:
     arm.append([link.origin, link.endpoint])
-
 print(arm)
-
 
 ''' 3D PLOT
 for link in arm:
@@ -78,19 +75,19 @@ for link in arm:
     ax.plot(x, y, z)
     ax.scatter(x, y, z, c='red', s=100) # Just adds a dot to the points
 '''
-
 # a 2D plotter for ease of view in the graph while testing the math
 for link in arm:
     x, y, z = zip(*link)                                                        # Zip
     ax.plot(x, y)
     ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
+
 # Graph stuff
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 #ax.set_zlabel('Z')
-ax.set_xlim(-10, 10)
-ax.set_ylim(-10, 10)
+ax.set_xlim(-5, 7)
+ax.set_ylim(-5, 7)
 #ax.set_zlim(-10, 10)
 
 plt.show()
