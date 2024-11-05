@@ -7,6 +7,8 @@ Link.allLinks = array of all Link objects
 
 !!! Everything has to be redefined
 
+# 11/4 all current definitions work as they should
+
 To-Do: 
 1. Find a way to map links to eachother better 
     instead of looping through the entire list of links
@@ -102,7 +104,12 @@ def rotateLink(link):
     newLink = Link(newOrigin, (newX, newY, 0), len(newLinks)+1)
     newLinks.append(newLink)
     plotLink(newLink)
-
+"""
+Since the rotate function was called in order, then the NewLinks array indices will match allLinks
+but technically, allLinks is adding these newLinks too.
+the rotate function will need to be called on some links
+so I have to handle the link relationships differently in here
+"""
 
 
 def plotLink(link): #correctly connects the previous link to the current link
@@ -120,11 +127,16 @@ def plotLink(link): #correctly connects the previous link to the current link
     plt.plot([x,x2], [y, y2])
     plt.scatter((x, x2), (y, y2), c='black', s=100)
 
-
 plotArm()
 
-rotateLink(link1)
-rotateLink(link2)
+currentArm = []
+for link in Link.allLinks:
+    currentArm.append(link)
+
+for link in currentArm:
+    rotateLink(link)
+    
+
 
 
 # Graph stuff
