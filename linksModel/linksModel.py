@@ -33,6 +33,8 @@ link1 = Link("link1", (3, 4, 0))
 link2 = Link("link2", (5,4,0))
 link3 = Link("link3", (4,7,8))
 
+print(Link.previous(link1))
+
 def printArm(link):
     print(link.origin)
     print(link.position)
@@ -54,17 +56,18 @@ def plotArm():
         ax.scatter(x, y, c='red', s=100) 
 
 def rotateLink(link):
-    #x1 = previousX
-    #y1 = previousY
+    previousLink = Link.previous(link)
+    x1 = previousLink.position[0]
+    y1 = previousLink.position[1]
     x2 = link.position[0]
     y2 = link.position[1]
-    #x = abs(x2 - x1)
-    #y = abs(y2 - y1)
+    x = abs(x2 - x1)
+    y = abs(y2 - y1)
     theta = 45
     radians = (theta*math.pi)/180
-    # rotates a single link, then adds it back to the arm (using x1, y1)
-    #newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
-    #newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
+    #rotates a single link, then adds it back to the arm (using x1, y1)
+    newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
+    newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
     plotLink(link)
 
 
