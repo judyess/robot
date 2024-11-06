@@ -24,72 +24,90 @@ from mpl_toolkits.mplot3d import Axes3D
 import math
 from Link import Link
 
+
+newPositions=[]
+currentArm = []
+
+
+
 # plot stuff
 fig = plt.figure()
-ax = fig.add_subplot()
+ax = fig.subplots()
 
 # Link Objects (name, position)
 link1 = Link("link1", (3, 4, 0))
 link2 = Link("link2", (5,4,0))
 link3 = Link("link3", (4,7,8))
 
-print(Link.previous(link1))
+all = Link.allLinks
 
-def printArm(link):
-    print(link.origin)
-    print(link.position)
-    print(link.pin)
+def printLink(link):
+    print(link.pin, ": ", link.origin, ", ", link.position)
 
-for link in Link.allLinks:
-    printArm(link)
-arm = []
-for link in Link.allLinks:
-    arm.append([link.origin, link.position])
-print(arm)
+def printArm(array):
+    for link in array:
+        printLink(link)
 
-
-
+""" DO NOT WORK. KEEPS RETURNING CRAP
+def previous(link):
+    if link.pin != 0:
+        return Link.allLinks[link.pin-1]
+    else:
+        return link
+def next(link):
+    if link.pin != len(all)-1:
+        return all[link.pin+1]
+"""
 
 
 def rotateLink(link):
-    i = Link.previous(link)
-    x1 = Link.allLinks[i].position[0]
-    y1 = Link.allLinks[i].position[1]
+    previous = link
+    if link.pin != 0:
+        try:
+            previous = previous(link)
+        except:
+            previous = link
+
+    #rotates a single link, then adds it back to the arm (using x1, y1)
+    x1 = previous.position[0]
+    y1 = previous.position[1]
     x2 = link.position[0]
     y2 = link.position[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
     theta = 90
     radians = (theta*math.pi)/180
-    #rotates a single link, then adds it back to the arm (using x1, y1)
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
     newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
     newPosition = (newX, newY, 0)
-    Link.update(link, newPosition)
-    plotArm()
+
+    #update positions
+    link.position = newPosition
+    if link.pin != len(all)-1:
+        nextLink = all[link.pin+1]
+        nextLink.origin = newPosition 
+    
+    # plot new positin
+    newPositions.append(link)
+    plotArm(newPositions)
 
 
-
-def plotArm():
-    for link in Link.allLinks:
+def plotArm(array):
+    for link in array:
         coords = [link.origin, link.position]
         x, y, z = zip(*coords)                                              
         ax.plot(x, y)
         ax.scatter(x, y, c='red', s=100) 
 
+def main():
+    plotArm(all)
+    printArm(all)
+    for link in all:
+        rotateLink(link)
+    plotArm(newPositions)
+    printArm(newPositions)
 
-
-
-currentArm = []
-
-for link in Link.allLinks:
-    currentArm.append(link)
-
-for link in currentArm:
-    rotateLink(link)
-    
-
-
+main()
 
 # Graph stuff
 ax.set_xlabel('X')
