@@ -37,11 +37,6 @@ print(link2.pin)
 for link in Link.allLinks:
     printArm(link)
 
-arm = []
-for link in Link.allLinks:
-    arm.append([link.origin, link.endpoint])
-print(arm)
-
 
 def plotArm(array):
     for link in array:
