@@ -78,7 +78,7 @@
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
-int motorSpeed = 5; // used in position-setting functions to slow the motor down
+int motorSpeed = 2; // used in position-setting functions to slow the motor down
 int minTicks = 122;
 int maxTicks = 614;
 
@@ -275,8 +275,8 @@ void l2Parallel(float angle){
   theta1 = angle;
   Serial.println("---------------");
   joint *linkp, *linkq;
-  linkp = &base;
-  linkq = &link1;
+  linkp = &link1;
+  linkq = &link2;
   int pwm1 = convertToTicks(theta1);
   float currentPos = linkp -> jointPosition; 
   if(currentPos < pwm1){
@@ -323,8 +323,8 @@ void loop() {
     }
       if(r == '\n'){}
     
-    checkPulse(link,angle);
-    //l2Parallel(angle);
+    //checkPulse(link,angle);
+    l2Parallel(angle);
   }
 }
 
