@@ -10,9 +10,8 @@ fig = plt.figure()
 ax = fig.add_subplot()
 
 class Link:
-    allLinks = []
-    def __init__(self, origin, endpoint, pin = len(allLinks)):
-        #Link.allLinks.append(self)   # SOMETHING CORE 
+    def __init__(self, origin, endpoint, pin):
+        #allLinks.append(self)   # SOMETHING CORE 
         self.origin = origin
         self.endpoint = endpoint
         self.pin = pin
@@ -21,8 +20,10 @@ class Link:
         if not isinstance(other, Link):
             return False
         return self.name == other.name 
-        
-def printArm(link):
+
+
+allLinks = []
+def printLink(link):
     print(link.origin)
     print(link.endpoint)
     print(link.pin)
@@ -30,12 +31,8 @@ def printArm(link):
 link1 = Link((0, 0, 0), (3, 4, 0), 0)
 link2 = Link(link1.endpoint, (5,6,0), 1)
 
-Link.allLinks.append(link1)
-Link.allLinks.append(link2)
-print(link1.pin)
-print(link2.pin)
-for link in Link.allLinks:
-    printArm(link)
+allLinks.append(link1)
+allLinks.append(link2)
 
 
 def plotArm(array):
@@ -50,7 +47,7 @@ newLinks = []
 def rotateLink(link):
     print("rotating")
     print(link.endpoint)
-    for linki in Link.allLinks:
+    for linki in allLinks:
         if linki.pin == link.pin - 1:
             previousX = linki.origin[0]
             previousY = linki.origin[1]
@@ -64,7 +61,7 @@ def rotateLink(link):
     y2 = link.endpoint[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 45
+    theta = 90
     radians = (theta*math.pi)/180
 
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
@@ -77,28 +74,14 @@ def rotateLink(link):
 
     newLink = Link(newOrigin, (newX, newY, 0), len(newLinks)+1)
     newLinks.append(newLink)
-    plotLink(newLink)
 
 
-def plotLink(link): #correctly connects the previous link to the current link
-    for linki in newLinks:
-        if linki.pin == link.pin - 1:
-            previousLink = linki
-        else:
-            previousLink = link
+plotArm(allLinks)
 
-    x = previousLink.origin[0]
-    y = previousLink.origin[1]
-    x2 = link.endpoint[0]
-    y2 = link.endpoint[1]
-    print("new points: ", x2, ", ", y2)
-    plt.plot([x,x2], [y, y2])
-    plt.scatter((x, x2), (y, y2), c='black', s=100)
-
-plotArm(Link.allLinks)
-
-for link in Link.allLinks:
+for link in allLinks:
     rotateLink(link)
+
+plotArm(newLinks)
     
 
 
@@ -106,9 +89,6 @@ for link in Link.allLinks:
 # Graph stuff
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
-#ax.set_zlabel('Z')
 ax.set_xlim(-9, 10)
 ax.set_ylim(-9, 10)
-#ax.set_zlim(-10, 10)
-
 plt.show()
