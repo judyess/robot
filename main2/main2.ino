@@ -109,21 +109,7 @@ void moveToReach(joint *link){
 }
 
 
-/* 
-Takes an angle, outputs a position
-*/
-void rotateLinks(){
-  int pin;
-  float newPosition;
-  float offset;   // the point of rotation's offset is calculated from the previous links position
-  int numberOfLinks = 6;
-  for(int i = 0; i <= 6; i++){
-    /* newPosition = (newX, newY)
-    newX = ((x)*math.cos(theta)) - ((y)*math.sin(theta)) + offset.x
-    newY = ((x)*math.sin(theta)) + ((y)*math.cos(theta)) + offset.y
-    */
-  }
-}
+
 
 
 
