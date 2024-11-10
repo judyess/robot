@@ -12,7 +12,7 @@ ax = fig.add_subplot()
 class Link:
     allLinks = []
     def __init__(self, origin, endpoint, pin = len(allLinks)):
-        Link.allLinks.append(self)   # SOMETHING CORE 
+        #Link.allLinks.append(self)   # SOMETHING CORE 
         self.origin = origin
         self.endpoint = endpoint
         self.pin = pin
@@ -64,7 +64,7 @@ def rotateLink(link):
     y2 = link.endpoint[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 90
+    theta = 45
     radians = (theta*math.pi)/180
 
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
@@ -81,7 +81,7 @@ def rotateLink(link):
 
 
 def plotLink(link): #correctly connects the previous link to the current link
-    for linki in Link.allLinks:
+    for linki in newLinks:
         if linki.pin == link.pin - 1:
             previousLink = linki
         else:
@@ -97,11 +97,7 @@ def plotLink(link): #correctly connects the previous link to the current link
 
 plotArm(Link.allLinks)
 
-currentArm = []
 for link in Link.allLinks:
-    currentArm.append(link)
-
-for link in currentArm:
     rotateLink(link)
     
 
