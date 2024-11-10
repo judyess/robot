@@ -1,3 +1,8 @@
+/*
+  I need to decide how I want the arm to reach a target. 
+    if a target is within
+*/
+
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
@@ -32,7 +37,7 @@ struct joint{
 const float ybase=0;
 const float xbase=3.5;
 
-joint base = {0, {xbase, ybase, 0}, 3.5, tickPos0}; 
+joint base = {0, {xbase, ybase, 0}, 3.5, tickPos0}; // only the base's Z value will be changing
 joint link1 = {1, {0, 5, 0}, 5, tickPos1};
 joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
 joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
@@ -65,6 +70,47 @@ float convertToDegrees(float ticks){
   return degrees;
 }
 
+/* This function has to calculate the distance from a target position (x,y) from some position (which position TBD)
+     if the distance between the target and the last link is less-than the length of the link + it's starting point (it's origin)
+     then that link can reach the target, at which case, I just need to calculate the angle it needs to rotate to get there.
+    
+     Step A: Calculate distance and compare to the reach of a link
+     Step B: Calculate necessary angle required to reach target
+
+    else
+    Do step A. for the last link, link[i] + the next-to-last link, link[i-1]. Where the origin is the next-to-last link's origin
+    then calculate how much link[i-1] needs to rotate to put link[i] at a position where it's in reach of the target.
+      this step is step B. but the position that link[i-1] needs to be in is just where link[i] can reach the target
+    then do step B. for how much link[i] needs to rotate to reach the target.
+
+*/
+void distanceToTarget(float targetX, float targetY){
+  float pointB = {targetX,targetY}
+  float pointA = {myPosX,myPosY}
+  float distanceFromPointAtoPointB
+  /*
+    distanceFromPointAtoPointB = sqrt((targetX - myPosX)**2 + (targetY - myPosY)**2)
+  */
+}
+
+/* A translation of the Python function from the model
+This function will have nothing to do with making the arm move, but just taking rotation info and calculating position
+*/
+void rotateLinks(){
+  int pin
+  float newX
+  float newY
+  float offsetX // the point of rotation's offset is calculated from the previous links position
+  float offsetY 
+  int numberOfLinks = 6
+  for(int i = 0; i <= 6; i++){
+    /* 
+    newX = ((x)*math.cos(theta)) - ((y)*math.sin(theta)) + offsetX
+    newY = ((x)*math.sin(theta)) + ((y)*math.cos(theta)) + offsetY
+    */
+  }
+}
+
 void loop(){
-  
+
 }
