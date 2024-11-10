@@ -11,12 +11,11 @@ ax = fig.add_subplot()
 
 class Link:
     def __init__(self, origin, endpoint, pin):
-        #allLinks.append(self)   # SOMETHING CORE 
         self.origin = origin
         self.endpoint = endpoint
         self.pin = pin
 
-    def __eq__(self, other): 
+    def __eq__(self, other): # 
         if not isinstance(other, Link):
             return False
         return self.name == other.name 
@@ -76,6 +75,13 @@ def rotateLink(link):
     newLinks.append(newLink)
 
 
+"""
+11/10 Works.
+Code has been stripped down. Currently, the rotateLink function has to be called on all links in an array, and it puts it in a new array.
+I need the function to be able to rotate the arm from a specific point of rotation, 
+    return the new positions and make sure they are connected to the links that did not change positions.
+I am using two different arrays now so I can see how the links have changed positions but this might be making the code more complicated at this point. idk.
+"""
 plotArm(allLinks)
 
 for link in allLinks:
