@@ -57,6 +57,8 @@ joint efx = {5, {0, 4.5, 0}, 4.5, tickPos4};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 
+float target[3] = {7,6, 0};
+
 void setup() {
   Serial.begin(9600); 
   pwm.begin();
@@ -82,25 +84,39 @@ float convertToDegrees(float ticks){
 }
 
 /* 
-calculate the distance from a target position (x,y) from some position                                                                                                                                                                                                                                                                                
+calculate the distance between two positions.                                                                                                                                                                                                                                                                                
 */
-void distanceToTarget(float pointA, float pointB){
-  float targetX = pointB[0]
-  float targetY = pointB[1]
-  float myPosX = pointA[0]
-  float myPosY = pointA[1]
-  float distanceBetweenPointAtoPointB
-    distanceBetweenPointAtoPointB = sqrt(pow((targetX - myPosX),2) + pow((targetY - myPosY),2))
+float  distanceToTarget(float pointA[3], float pointB[3]){
+  float targetX = pointB[0];
+  float targetY = pointB[1];
+  float myPosX = pointA[0];
+  float myPosY = pointA[1];       
+  float distance = sqrt(pow((targetX - myPosX),2) + pow((targetY - myPosY),2));   //distance Between PointA to PointB
+  Serial.println(distance);
+  return distance;
 }
+
+/*
+for linki to reach the target, point T, 
+  then link[i-1] needs to move into a position where the distance between it's end position and point T is equal to the length of link[i]
+  this requires getting the distance from distanceToTarget(link[i-1], point T)
+*/
+void moveToReach(joint *link){
+  float d = distanceToTarget(link->coords, target);
+  float x = d - jointsList[link->pin + 1]->length;
+  float theta = radiansToDegrees(asin(x/d));
+  Serial.println(theta);
+}
+
 
 /* 
 Takes an angle, outputs a position
 */
 void rotateLinks(){
-  int pin
-  float newPosition
-  float offset// the point of rotation's offset is calculated from the previous links position
-  int numberOfLinks = 6
+  int pin;
+  float newPosition;
+  float offset;   // the point of rotation's offset is calculated from the previous links position
+  int numberOfLinks = 6;
   for(int i = 0; i <= 6; i++){
     /* newPosition = (newX, newY)
     newX = ((x)*math.cos(theta)) - ((y)*math.sin(theta)) + offset.x
@@ -112,5 +128,30 @@ void rotateLinks(){
 
 
 void loop(){
-
+  float pin, angle;
+  joint *link;
+  angle = 0;
+  while(Serial.available() > 0)
+  {
+    pin = Serial.parseInt();
+    angle = Serial.parseInt();
+    char r = Serial.read();
+    if (pin == 0){
+      link = &base;
+    }
+    if (pin == 1){
+      link = &link1;
+    }
+    if (pin == 2){
+      link = &link2;
+    }
+    if(pin == 3){
+      link = &link3;
+    }
+    if (pin == 4){
+      link = &link4;
+    }
+      if(r == '\n'){}
+    moveToReach(link);
+  }
 }
