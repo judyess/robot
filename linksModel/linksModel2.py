@@ -12,7 +12,7 @@ ax = fig.add_subplot()
 class Link:
     allLinks = []
     def __init__(self, origin, endpoint, pin = len(allLinks)):
-        Link.allLinks.append(self) 
+        Link.allLinks.append(self)   # SOMETHING CORE 
         self.origin = origin
         self.endpoint = endpoint
         self.pin = pin
@@ -42,12 +42,13 @@ for link in Link.allLinks:
     arm.append([link.origin, link.endpoint])
 print(arm)
 
-def plotArm():
-    for link in arm:
-        x, y, z = zip(*link)                                                        # Zip
-        ax.plot(x, y)
-        ax.scatter(x, y, c='red', s=100) # Just adds a dot to the points
 
+def plotArm(array):
+    for link in array:
+        coords = [link.origin, link.endpoint]
+        x, y, z = zip(*coords)                                              
+        ax.plot(x, y)
+        ax.scatter(x, y, c='red', s=100) 
 
 
 newLinks = []
@@ -99,7 +100,7 @@ def plotLink(link): #correctly connects the previous link to the current link
     plt.plot([x,x2], [y, y2])
     plt.scatter((x, x2), (y, y2), c='black', s=100)
 
-plotArm()
+plotArm(Link.allLinks)
 
 currentArm = []
 for link in Link.allLinks:
