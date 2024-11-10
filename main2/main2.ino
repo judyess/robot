@@ -32,11 +32,12 @@ int minTicks = 122;
 int maxTicks = 614;
 
 // starting tick positions
-float tickPos0 = 368;
+float tickPos0 = 0;
 float tickPos1 = 368;
 float tickPos2 = 368;
 float tickPos3 = 368; 
 float tickPos4 = 368;
+float tickPos5 = 368;
 
 struct joint{
   int pin;              
@@ -45,22 +46,22 @@ struct joint{
   float jointPosition;  
 };
 
-const float ybase=0;
-const float xbase=3.5;
+const float xbase=0;
+const float ybase=3.5;
 
-joint base = {0, {xbase, ybase, 0}, 3.5, tickPos0}; // only the base's Z value will be changing
-joint link1 = {1, {0, 5, 0}, 5, tickPos1};
-joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
-joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
-joint link4 = {4, {0, 2, 0}, 2, tickPos4};
-joint efx = {5, {0, 4.5, 0}, 4.5, tickPos4};
+joint base = {0, {xbase, ybase, 0}, 3.5, 0}; // only the base's Z value will be changing
+joint link1 = {1, {0, link1.length, 0}, 5, tickPos1};
+joint link2 = {2, {0, link2.length, 0}, 3.5, tickPos2};
+joint link3 = {3, {0, link3.length, 0}, 0.5, tickPos3};
+joint link4 = {4, {0, link4.length, 0}, 2, tickPos4};
+joint efx = {5, {0, efx.length, 0}, 4.5, tickPos5};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 
 float target[3] = {7,6, 0};
 
 void setup() {
-  Serial.begin(9600); 
+  Serial.begin(19200); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
   pwm.setPWM(base.pin,0,base.jointPosition);
@@ -68,9 +69,54 @@ void setup() {
   pwm.setPWM(2,0,tickPos2);
   pwm.setPWM(3,0,tickPos3); 
   pwm.setPWM(4,0,tickPos4); 
+  pwm.setPWM(5,0,tickPos5); 
+  initialize();
   Serial.println(" ");
   Serial.println("start");
+  print();
 }
+
+void initialize(){
+  for(int i=0; i<6;i++){
+    joint *previousLink;
+    float prevX = 0;
+    float prevY = 0;
+    if(i!=0){
+      prevX = jointsList[i-1]->coords[0];
+      prevY = jointsList[i-1]->coords[1];
+    }
+    else{
+      prevX = xbase;
+      prevY = ybase;
+      i++;
+    }
+    joint *link = jointsList[i];
+    float angle = convertToDegrees(link->jointPosition);
+    float x = (link->length * (cos(degreesToRadians(angle)))) + prevX; 
+    link -> coords[0] = (x); 
+    float y = (link->length * (sin(degreesToRadians(angle)))) + prevY; 
+    link -> coords[1] = (y);
+    //previousLink = jointsList[i];
+    Serial.println(angle);
+  }
+}
+
+void print(){
+  //joint *previousLink = &base;
+  for(int i=0; i<6;i++){
+    joint *link = jointsList[i];
+    Serial.print("pin: ");
+    Serial.print(i);
+    Serial.print(", ");
+    Serial.print(link->pin);
+    Serial.print(" : ");
+    Serial.print(link->coords[0]);
+    Serial.print(", ");
+    Serial.println(link->coords[1]);
+    //previousLink = jointsList[i];
+  }
+}
+
 
 int convertToTicks(float degrees){
   float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
@@ -101,15 +147,51 @@ for linki to reach the target, point T,
   then link[i-1] needs to move into a position where the distance between it's end position and point T is equal to the length of link[i]
   this requires getting the distance from distanceToTarget(link[i-1], point T)
 */
-void moveToReach(joint *link){
+float moveToReach(joint *link){
   float d = distanceToTarget(link->coords, target);
   float x = d - jointsList[link->pin + 1]->length;
   float theta = radiansToDegrees(asin(x/d));
   Serial.println(theta);
+  position(link, theta);
+  return theta;
 }
 
-
-
+/*
+I have to set an initial angle, and everytime a joint rotates, I have to update the new position. 
+So this should assume that it is always receiving a current and valid value.
+DistanceToTarget() and moveToReach() gets the necessary angle that a link should turn. 
+So, this should take an angle. Then calculate the new position from the angle of rotation and the current position.
+But this also needs to take into consideration that all links will be moving with it.
+Refer to the code in linksModel.py for the function that handles this.
+*/
+void position(joint *link, float theta){
+    int n = 6;
+  for(int i=link->pin; i < n; i++){
+    joint *previousLink = jointsList[0];
+    float prevX;
+    float prevY;
+    if(i!=0){
+      prevX = jointsList[i-1]->coords[0];
+      prevY = jointsList[i-1]->coords[1];
+    }
+    else{
+      prevX = jointsList[0]->coords[0];
+      prevY = jointsList[0]->coords[1];
+      i++;
+    }
+    
+    joint *link = jointsList[i];
+    float newX = (((link->coords[0])*cos(degreesToRadians(theta))) - ((link->coords[1] * sin(degreesToRadians(theta))))) + prevX;
+    float newY = (((link->coords[0])*sin(degreesToRadians(theta))) + ((link->coords[1] * cos(degreesToRadians(theta))))) + prevY;
+    previousLink = jointsList[i];
+    Serial.print("pin: ");
+    Serial.print(i);
+    Serial.print(" : ");
+    Serial.print(newX);
+    Serial.print(", ");
+    Serial.println(newY);
+  }
+}
 
 
 
@@ -120,7 +202,7 @@ void loop(){
   while(Serial.available() > 0)
   {
     pin = Serial.parseInt();
-    angle = Serial.parseInt();
+    angle = Serial.parseFloat();
     char r = Serial.read();
     if (pin == 0){
       link = &base;
