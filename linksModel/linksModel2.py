@@ -45,7 +45,13 @@ def plotArm(array):
 
 
 newLinks = []
-def rotateLink(link): #returns the correct coords. X and Y was flipped.
+#returns the correct coords 
+# but only link1's coords match the output from the Arduino code.
+# because it is returning values equal to applying the same angle to all links
+# but if I apply the same angle in Arduino for each link, they do return the same results.
+# it's just that the plot doesn't match how the arm is actually moving.
+# (!) Need to redefine how the links are associated with eachother
+def rotateLink(link): 
 
     print("rotating")
     print(link.endpoint)
