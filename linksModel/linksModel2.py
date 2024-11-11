@@ -63,11 +63,11 @@ def rotateLink(link): #returns the correct coords. X and Y was flipped.
     y2 = link.endpoint[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 90
+    theta = 31.95
     radians = (theta*math.pi)/180
 
-    newY = abs(((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1)
-    newX = abs(((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1)
+    newY = (((x)*math.cos(radians)) - ((-y)*math.sin(radians)) + x1)
+    newX = (((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1)
     
     if link.pin >= 1:
         newOrigin = newLinks[len(newLinks) - 1].endpoint
