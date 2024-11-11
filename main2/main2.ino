@@ -1,19 +1,3 @@
-/*
-  I need to decide how I want the arm to reach a target. 
-
-  if the distance between the target and the last link is less-than the length of the link + it's starting point (it's origin)
-     then that link can reach the target, at which case, I just need to calculate the angle it needs to rotate to get there.
-    
-     Step A: Calculate distance and compare to the reach of a link
-     Step B: Calculate necessary angle required to reach target
-
-    else
-    Do step A. for the last link, link[i] + the next-to-last link, link[i-1]. Where the origin is the next-to-last link's origin
-    then calculate how much link[i-1] needs to rotate to put link[i] at a position where it's in reach of the target.
-      this step is step B. but the position that link[i-1] needs to be in is just where link[i] can reach the target
-    then do step B. for how much link[i] needs to rotate to reach the target.
-*/
-
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
@@ -32,7 +16,7 @@ int minTicks = 122;
 int maxTicks = 614;
 
 // starting tick positions
-float tickPos0 = 0;
+float tickPos0 = 368;
 float tickPos1 = 368;
 float tickPos2 = 368;
 float tickPos3 = 368; 
@@ -58,10 +42,11 @@ joint efx = {5, {0, efx.length, 0}, 4.5, tickPos5};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 
+
 float target[3] = {7,6, 0};
 
 void setup() {
-  Serial.begin(19200); 
+  Serial.begin(9600); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
   pwm.setPWM(base.pin,0,base.jointPosition);
@@ -69,38 +54,47 @@ void setup() {
   pwm.setPWM(2,0,tickPos2);
   pwm.setPWM(3,0,tickPos3); 
   pwm.setPWM(4,0,tickPos4); 
-  pwm.setPWM(5,0,tickPos5); 
-  initialize();
   Serial.println(" ");
   Serial.println("start");
+  initializeY();
+  delay(100);
   print();
 }
-
-void initialize(){
-  for(int i=0; i<6;i++){
-    joint *previousLink;
-    float prevX = 0;
-    float prevY = 0;
-    if(i!=0){
-      prevX = jointsList[i-1]->coords[0];
-      prevY = jointsList[i-1]->coords[1];
-    }
-    else{
-      prevX = xbase;
-      prevY = ybase;
-      i++;
-    }
-    joint *link = jointsList[i];
-    float angle = convertToDegrees(link->jointPosition);
-    float x = (link->length * (cos(degreesToRadians(angle)))) + prevX; 
-    link -> coords[0] = (x); 
-    float y = (link->length * (sin(degreesToRadians(angle)))) + prevY; 
-    link -> coords[1] = (y);
-    //previousLink = jointsList[i];
-    Serial.println(angle);
+/*
+  The total height of the arm at start. 
+  I have each of my links starting at 90 degrees (links extend straight up) so the y-coords are just an accumulation of link lengths
+  idk what that last print line is (with the 3 digit pin and some random +'s)
+*/
+void initializeY(){ 
+  float jLength;
+  float iLength;
+  float total;
+  for(int i=0; i <= 6; i+=1){
+    iLength = jointsList[i]->length;
+    Serial.print(jointsList[i]->pin);
+    Serial.print(": ");
+    Serial.print(iLength);
+      for(int j=i-1; j>=0; j-=1){
+        jLength = jointsList[j]->length;
+        total = jointsList[j]->length + jointsList[i]->coords[1];
+        jointsList[i]->coords[1] = total;
+        Serial.print(" + ");
+        Serial.print(jLength);
+      }
+      jointsList[i]->coords[1] = total;
+      Serial.print(" = ");
+      Serial.println(total);
   }
 }
-
+int convertToTicks(float degrees){
+  float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
+  int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
+  return ticks;
+}
+float convertToDegrees(float ticks){ 
+  float degrees = map(ticks, minTicks, maxTicks, 0, 180);
+  return degrees;
+}
 void print(){
   //joint *previousLink = &base;
   for(int i=0; i<6;i++){
@@ -117,18 +111,6 @@ void print(){
   }
 }
 
-
-int convertToTicks(float degrees){
-  float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
-  int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
-  return ticks;
-}
-
-float convertToDegrees(float ticks){ 
-  float degrees = map(ticks, minTicks, maxTicks, 0, 180);
-  return degrees;
-}
-
 /* 
 calculate the distance between two positions.                                                                                                                                                                                                                                                                                
 */
@@ -141,68 +123,74 @@ float  distanceToTarget(float pointA[3], float pointB[3]){
   Serial.println(distance);
   return distance;
 }
-
 /*
 for linki to reach the target, point T, 
   then link[i-1] needs to move into a position where the distance between it's end position and point T is equal to the length of link[i]
   this requires getting the distance from distanceToTarget(link[i-1], point T)
 */
-float moveToReach(joint *link){
+float requiredAngleToReachTarget(joint *link){
   float d = distanceToTarget(link->coords, target);
   float x = d - jointsList[link->pin + 1]->length;
   float theta = radiansToDegrees(asin(x/d));
   Serial.println(theta);
-  position(link, theta);
   return theta;
 }
 
-/*
-I have to set an initial angle, and everytime a joint rotates, I have to update the new position. 
-So this should assume that it is always receiving a current and valid value.
-DistanceToTarget() and moveToReach() gets the necessary angle that a link should turn. 
-So, this should take an angle. Then calculate the new position from the angle of rotation and the current position.
-But this also needs to take into consideration that all links will be moving with it.
-Refer to the code in linksModel.py for the function that handles this.
+//******************************ROTATION MATRICES********************************
+/* ROTATION MATRICES BECAUSE TRYING TO DO THE MATH OTHER WAYS KEEPS BEING WEIRD
+//*******************************************************************************
+              [x]   |x'|
+  (RMatrix) * [y] = |y'|
+              [z]   |z'|
+
+  for each ROW of Rrc's, where r=row label, c=column label. (Each row[i] refers to the R elements in it's own row.)
+   row[X] =   x'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
+   row[Y] =   y'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
+   row[Z] =   z'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
 */
-void position(joint *link, float theta){
-    int n = 6;
-  for(int i=link->pin; i < n; i++){
-    joint *previousLink = jointsList[0];
-    float prevX;
-    float prevY;
-    if(i!=0){
-      prevX = jointsList[i-1]->coords[0];
-      prevY = jointsList[i-1]->coords[1];
-    }
-    else{
-      prevX = jointsList[0]->coords[0];
-      prevY = jointsList[0]->coords[1];
-      i++;
-    }
-    
-    joint *link = jointsList[i];
-    float newX = (((link->coords[0])*cos(degreesToRadians(theta))) - ((link->coords[1] * sin(degreesToRadians(theta))))) + prevX;
-    float newY = (((link->coords[0])*sin(degreesToRadians(theta))) + ((link->coords[1] * cos(degreesToRadians(theta))))) + prevY;
-    previousLink = jointsList[i];
-    Serial.print("pin: ");
-    Serial.print(i);
-    Serial.print(" : ");
-    Serial.print(newX);
-    Serial.print(", ");
-    Serial.println(newY);
-  }
+void rotationMatrixOnX(){
+  /* rotate on X
+
+      X   Y   Z
+  X   1   0   0
+  Y   0 cosθ  -sinθ
+  Z   0 sinθ  cosθ
+
+  */
+}
+void rotationMatrixOnY(){
+  /* rotate on Y
+
+      X    Y     Z
+  X  cosθ  0   sinθ
+  Y  0     1   0
+  Z  -sinθ 0   cosθ
+
+  */
+}
+void rotationMatrixOnZ(){
+  /* rotate on Z
+
+      X     Y     Z
+  X  cosθ  -sinθ  sinθ    
+  Y  sinθ  cosθ   0     
+  Z  0     0      1     
+
+  */
 }
 
+//*******************************************************************************
 
 
 void loop(){
   float pin, angle;
   joint *link;
   angle = 0;
+  float theta = 0;
   while(Serial.available() > 0)
   {
     pin = Serial.parseInt();
-    angle = Serial.parseFloat();
+    angle = Serial.parseInt();
     char r = Serial.read();
     if (pin == 0){
       link = &base;
@@ -219,7 +207,8 @@ void loop(){
     if (pin == 4){
       link = &link4;
     }
-      if(r == '\n'){}
-    moveToReach(link);
+    if(r == '\n'){}
+    theta = requiredAngleToReachTarget(link);
+    print();
   }
 }
