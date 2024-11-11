@@ -27,11 +27,13 @@ def printLink(link):
     print(link.endpoint)
     print(link.pin)
 
-link1 = Link((0, 0, 0), (3, 4, 0), 0)
-link2 = Link(link1.endpoint, (5,6,0), 1)
+link1 = Link((0, 0, 0), (0.0, 5, 0), 0)
+link2 = Link(link1.endpoint, (0.0,8.5,0), 1)
+link3 = Link(link2.endpoint, (0.0,12.0,0), 2)
 
 allLinks.append(link1)
 allLinks.append(link2)
+allLinks.append(link3)
 
 
 def plotArm(array):
@@ -43,7 +45,8 @@ def plotArm(array):
 
 
 newLinks = []
-def rotateLink(link):
+def rotateLink(link): #returns the correct coords. X and Y was flipped.
+
     print("rotating")
     print(link.endpoint)
     for linki in allLinks:
@@ -63,8 +66,8 @@ def rotateLink(link):
     theta = 90
     radians = (theta*math.pi)/180
 
-    newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
-    newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
+    newY = abs(((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1)
+    newX = abs(((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1)
     
     if link.pin >= 1:
         newOrigin = newLinks[len(newLinks) - 1].endpoint
@@ -73,6 +76,7 @@ def rotateLink(link):
 
     newLink = Link(newOrigin, (newX, newY, 0), len(newLinks)+1)
     newLinks.append(newLink)
+    printLink(newLink)
 
 
 """
@@ -95,6 +99,6 @@ plotArm(newLinks)
 # Graph stuff
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
-ax.set_xlim(-9, 10)
-ax.set_ylim(-9, 10)
+ax.set_xlim(-15, 15)
+ax.set_ylim(-5, 15)
 plt.show()
