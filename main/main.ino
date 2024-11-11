@@ -65,6 +65,8 @@
         All 3 fingers point in the positive directions along their axis.
   */
 
+  // x coords are between [-5, 5]
+
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
 #include <math.h>
@@ -87,7 +89,7 @@ float tickPos0 = 368;
 float tickPos1 = 368;
 float tickPos2 = 368;
 float tickPos3 = 368; 
-float tickPos4 = 368;
+float tickPos4 = 368; // 45 degrees
 
 struct joint{
   int pin;              // physical pin on the PCA 9685.
@@ -100,11 +102,11 @@ const float ybase=0;
 const float xbase=3.5;
 // joint objects
 joint base = {0, {xbase, ybase, 0}, 3.5, tickPos0}; // coords are fixed. Need to put this in the code.
-joint link1 = {1, {0, 5, 0}, 5, tickPos1};
-joint link2 = {2, {0, 3.5, 0}, 3.5, tickPos2};
-joint link3 = {3, {0, 0.5, 0}, 0.5, tickPos3};
-joint link4 = {4, {0, 2, 0}, 2, tickPos4};
-joint efx = {5, {0, 4.5, 0}, 4.5, tickPos4};
+joint link1 = {1, {0, link1.length, 0}, 5, tickPos1};
+joint link2 = {2, {0, link2.length, 0}, 3.5, tickPos2};
+joint link3 = {3, {0, link3.length, 0}, 0.5, tickPos3};
+joint link4 = {4, {0, link4.length, 0}, 2, tickPos4};
+joint efx = {5, {0, efx.length, 0}, 4.5, tickPos4};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 
@@ -188,48 +190,20 @@ void setTickPosition(joint *joint, float ticks){
 
 void getCoords(joint *link, float theta){
   float distance = link->length * cos(degreesToRadians(theta)); // WORKS
-  link -> coords[0] = abs(distance); // should this be absolute?
+  link -> coords[0] = (distance); // should this be absolute?
   Serial.print("Coords: (");
   Serial.print(link -> coords[0]);
   Serial.print(", ");
   float height = link->length * (sin(degreesToRadians(theta))); //WORKS
-  link -> coords[1] = abs(height); // should this be absolute?
+  link -> coords[1] = (height); // should this be absolute?
   Serial.print(" y: ");
   Serial.print(link -> coords[1]);
   Serial.println(")");
 }
-/*
-x is wrong because this is just adding up coords. 
-y is correct, a little off because link lengths are not precise.
-*/
-void getEFXCoords(){ 
-  int len = sizeof(jointsList)/sizeof(int); //sizeof(int) is some C peculiarity that is needed to return a human readable size
-  float xfx=0; 
-  float yfx=0;
-  for(int i=0; i<len; i++){
-    xfx += jointsList[i] -> coords[0];
-    yfx += jointsList[i] -> coords[1];
-    //xfx = yfx * sin(degreesToRadians(theta));    // < -- need an angle? 
-    /*If I use this, then I would need the angle for the line from the base to the efx position.
-      Probably going to have to recalculate everything, everytime anything moves. 
-      How to shift a link whose position only changes because some link before it has moved?
-          treat the entire arm like it has 2 links, 
-          where one link represents the part before the moving joint, and the other the part after the joint??? idfk... */
-  }
-  Serial.print("End Effector: (");
-  Serial.print(xfx);
-  Serial.print(", ");
-  Serial.print(yfx);
-  Serial.println(")");
-}
+
 
 void checkPulse(joint *link, float angle) { // a test function
   int pulse_ticks, degreePulse;
-  Serial.println("-----");
-  Serial.print("Motor ");
-  Serial.print(link -> pin);
-  Serial.print(": ");
-  Serial.println(angle);
   pulse_ticks = convertToTicks(angle);
   float current = link -> jointPosition; 
   if(current < pulse_ticks){
@@ -242,8 +216,13 @@ void checkPulse(joint *link, float angle) { // a test function
       setTickPosition(link, pos);
     }
   }
+  Serial.print("Motor ");
+  Serial.print(link -> pin);
+  Serial.print(": ");
+  Serial.print(angle);
+  Serial.print(", ");
+  Serial.println(pulse_ticks);
   getCoords(link, angle);
-  getEFXCoords();
   Serial.println("-----");
 }
 
@@ -303,7 +282,7 @@ void loop() {
   while(Serial.available() > 0)
   {
     pin = Serial.parseInt();
-    angle = Serial.parseInt();
+    angle = Serial.parseFloat();
     //i = Serial.parseInt();
     char r = Serial.read();
     if (pin == 0){
@@ -323,8 +302,8 @@ void loop() {
     }
       if(r == '\n'){}
     
-    //checkPulse(link,angle);
-    l2Parallel(angle);
+    checkPulse(link,angle);
+    //l2Parallel(angle);
   }
 }
 
