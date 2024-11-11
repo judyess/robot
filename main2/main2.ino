@@ -150,13 +150,19 @@ float requiredAngleToReachTarget(joint *link){
 */
 void rotationMatrixOnX(){
   /* rotate on X
-
       X   Y   Z
   X   1   0   0
   Y   0 cosθ  -sinθ
   Z   0 sinθ  cosθ
-
   */
+  float *rotMatrix[3];
+  float theta = 90;
+  float rowX[3] = {1, 0, 0};
+  float rowY[3] = {0, cos(degreesToRadians(theta)), -sin(degreesToRadians(theta))};
+  float rowZ[3] = {0, sin(degreesToRadians(theta)), cos(degreesToRadians(theta))};
+  rotMatrix[0] = rowX;
+  rotMatrix[1] = rowY;
+  rotMatrix[2] = rowZ;
 }
 void rotationMatrixOnY(){
   /* rotate on Y
@@ -167,16 +173,31 @@ void rotationMatrixOnY(){
   Z  -sinθ 0   cosθ
 
   */
+  float *rotMatrix[3];
+  float theta = 90;
+  float rowX[3] = {cos(degreesToRadians(theta)), 0, sin(degreesToRadians(theta))};
+  float rowY[3] = {0, 1, 0};
+  float rowZ[3] = {0, -sin(degreesToRadians(theta)), cos(degreesToRadians(theta))};
+  rotMatrix[0] = rowX;
+  rotMatrix[1] = rowY;
+  rotMatrix[2] = rowZ;
 }
 void rotationMatrixOnZ(){
   /* rotate on Z
-
       X     Y     Z
   X  cosθ  -sinθ  sinθ    
   Y  sinθ  cosθ   0     
   Z  0     0      1     
-
   */
+  float *rotMatrix[3];
+  float theta = 90;
+  float rowX[3] = {cos(degreesToRadians(theta)), -sin(degreesToRadians(theta)), sin(degreesToRadians(theta))};
+  float rowY[3] = {sin(degreesToRadians(theta)), cos(degreesToRadians(theta)), 0};
+  float rowZ[3] = {0, 0, 1};
+  rotMatrix[0] = rowX;
+  rotMatrix[1] = rowY;
+  rotMatrix[2] = rowZ;
+  
 }
 
 //*******************************************************************************
