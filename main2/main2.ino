@@ -46,7 +46,7 @@ joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 float target[3] = {7,6, 0};
 
 void setup() {
-  Serial.begin(9600); 
+  Serial.begin(19200); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
   pwm.setPWM(base.pin,0,base.jointPosition);
@@ -81,9 +81,9 @@ void initializeY(){
         Serial.print(" + ");
         Serial.print(jLength);
       }
-      jointsList[i]->coords[1] = total;
-      Serial.print(" = ");
-      Serial.println(total);
+    jointsList[i]->coords[1] = total;
+    Serial.print(" = ");
+    Serial.println(total);
   }
 }
 int convertToTicks(float degrees){
@@ -96,7 +96,6 @@ float convertToDegrees(float ticks){
   return degrees;
 }
 void print(){
-  //joint *previousLink = &base;
   for(int i=0; i<6;i++){
     joint *link = jointsList[i];
     Serial.print("pin: ");
@@ -107,10 +106,8 @@ void print(){
     Serial.print(link->coords[0]);
     Serial.print(", ");
     Serial.println(link->coords[1]);
-    //previousLink = jointsList[i];
   }
 }
-
 /* 
 calculate the distance between two positions.                                                                                                                                                                                                                                                                                
 */
@@ -119,21 +116,38 @@ float  distanceToTarget(float pointA[3], float pointB[3]){
   float targetY = pointB[1];
   float myPosX = pointA[0];
   float myPosY = pointA[1];       
-  float distance = sqrt(pow((targetX - myPosX),2) + pow((targetY - myPosY),2));   //distance Between PointA to PointB
-  Serial.println(distance);
+  float distance = sqrt(pow((targetX - myPosX),2) + pow((targetY - myPosY),2));
+  Serial.print("Distance: "); 
+  Serial.println(distance); // the hypotenuse
   return distance;
 }
 /*
 for linki to reach the target, point T, 
   then link[i-1] needs to move into a position where the distance between it's end position and point T is equal to the length of link[i]
   this requires getting the distance from distanceToTarget(link[i-1], point T)
+
+  The coord output matches output from checkPulse() in main.ino
 */
 float requiredAngleToReachTarget(joint *link){
   float d = distanceToTarget(link->coords, target);
   float x = d - jointsList[link->pin + 1]->length;
   float theta = radiansToDegrees(asin(x/d));
   Serial.println(theta);
+  getCoords(link, theta);
   return theta;
+}
+// The coord output matches output from checkPulse() in main.ino for the applied angle found 
+void getCoords(joint *link, float theta){
+  float distance = link->length * cos(degreesToRadians(theta)); // WORKS
+  link -> coords[0] = (distance); // should this be absolute?
+  Serial.print("Coords: (");
+  Serial.print(link -> coords[0]);
+  Serial.print(", ");
+  float height = link->length * (sin(degreesToRadians(theta))); //WORKS
+  link -> coords[1] = (height); // should this be absolute?
+  Serial.print(" y: ");
+  Serial.print(link -> coords[1]);
+  Serial.println(")");
 }
 
 //******************************ROTATION MATRICES********************************
@@ -164,14 +178,13 @@ void rotationMatrixOnX(){
   rotMatrix[1] = rowY;
   rotMatrix[2] = rowZ;
 }
+
 void rotationMatrixOnY(){
   /* rotate on Y
-
       X    Y     Z
   X  cosθ  0   sinθ
   Y  0     1   0
   Z  -sinθ 0   cosθ
-
   */
   float *rotMatrix[3];
   float theta = 90;
@@ -182,6 +195,7 @@ void rotationMatrixOnY(){
   rotMatrix[1] = rowY;
   rotMatrix[2] = rowZ;
 }
+
 void rotationMatrixOnZ(){
   /* rotate on Z
       X     Y     Z
@@ -197,9 +211,8 @@ void rotationMatrixOnZ(){
   rotMatrix[0] = rowX;
   rotMatrix[1] = rowY;
   rotMatrix[2] = rowZ;
-  
 }
-
+//*******************************************************************************
 //*******************************************************************************
 
 
