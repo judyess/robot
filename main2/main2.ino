@@ -8,6 +8,7 @@
 #define degreesToRadians(angleDegrees) (angleDegrees * M_PI / 180.0)
 #define radiansToDegrees(angleRadians) (angleRadians * 180.0 / M_PI)
 #define PI 3.1415926535897932384626433832795
+#define getArraySize(array) (sizeof(array)/sizeof(int))
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -31,23 +32,24 @@ struct joint{
 };
 
 const float xbase=0;
-const float ybase=3.5;
+const float ybase=0;
 
-joint base = {0, {xbase, ybase, 0}, 3.5, 0}; // only the base's Z value will be changing
-joint link1 = {1, {0, link1.length, 0}, 5, tickPos1};
-joint link2 = {2, {0, link2.length, 0}, 3.5, tickPos2};
-joint link3 = {3, {0, link3.length, 0}, 0.5, tickPos3};
-joint link4 = {4, {0, link4.length, 0}, 2, tickPos4};
-joint efx = {5, {0, efx.length, 0}, 4.5, tickPos5};
+joint base = {0, {xbase, ybase, 3.5}, 3.5, 0}; // only the base's Z value will be changing
+joint link1 = {1, {0, 0, link1.length}, 5, tickPos1};
+joint link2 = {2, {0, 0, link2.length}, 3.5, tickPos2};
+joint link3 = {3, {0, 0, link3.length}, 0.5, tickPos3};
+joint link4 = {4, {0, 0, link4.length}, 2, tickPos4};
+joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
-
-
 float target[3] = {7,6, 0};
 
-float *rotMatrix[3]; // had issues returning a matrix in the functions, so I'm just going to use a global for now.
+double *rotMatrix[3] = {0, 0, 0}; //~~$$$$$$$$~~ 
+int *testMatrix = malloc(sizeof(int)*3);
+
 
 void setup() {
+  
   Serial.begin(19200); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
@@ -61,31 +63,33 @@ void setup() {
   initializeY();
   delay(100);
   print();
+  arrayTest(testMatrix, getArraySize(&testMatrix));
 }
-/*
-  The total height of the arm at start. 
-  I have each of my links starting at 90 degrees (links extend straight up) so the y-coords are just an accumulation of link lengths
-  idk what that last print line is (with the 3 digit pin and some random +'s)
-*/
+
+void arrayTest(int array[], int arraySize){
+  array[0] = 88;
+  array[1] = 99;
+  array[2] = 100;
+  printArray(array, arraySize);
+}
+void printArray(int array[], int arraySize){
+  for (int i=0; i<arraySize; i++){
+    Serial.print(array[i]);
+  }
+}
+
 void initializeY(){ 
   float jLength;
   float iLength;
   float total;
-  for(int i=0; i <= 6; i+=1){
+  for(int i=0; i <= 5; i+=1){
     iLength = jointsList[i]->length;
-    //Serial.print(jointsList[i]->pin);
-    //Serial.print(": ");
-    //Serial.print(iLength);
       for(int j=i-1; j>=0; j-=1){
         jLength = jointsList[j]->length;
-        total = jointsList[j]->length + jointsList[i]->coords[1];
-        jointsList[i]->coords[1] = total;
-        //Serial.print(" + ");
-        //Serial.print(jLength);
+        total = jointsList[j]->length + jointsList[i]->coords[2];
+        jointsList[i]->coords[2] = total;
       }
-    jointsList[i]->coords[1] = total;
-    //Serial.print(" = ");
-    //Serial.println(total);
+    jointsList[i]->coords[2] = total;
   }
 }
 int convertToTicks(float degrees){
@@ -107,13 +111,12 @@ void print(){
     Serial.print(" : ");
     Serial.print(link->coords[0]);
     Serial.print(", ");
-    Serial.println(link->coords[1]);
+    Serial.print(link->coords[1]);
+    Serial.print(", ");
+    Serial.println(link->coords[2]);
   }
 }
-/* 
-calculate the distance between two positions.   
-The math is reflecting a represention of the arm in terms of right angles                                                                                                                                                                                                                                                                             
-*/
+
 float  distanceToTarget(float pointA[3], float pointB[3]){
   float targetX = pointB[0];
   float targetY = pointB[1];
@@ -124,16 +127,7 @@ float  distanceToTarget(float pointA[3], float pointB[3]){
   Serial.println(distance); // the hypotenuse
   return distance;
 }
-/*
-for link[i] to reach the target point T, 
-  then link[i-1] needs to move into a position where the distance between it's end position and the target point T is equal to the length of link[i]
-  this requires getting the distance from distanceToTarget(link[i-1], point T)
-
-  The coord output matches output from checkPulse() in main.ino
-  The math is reflecting a represention of the arm in terms of right angles.
-  (!) Add files illustrating what the code is calculating
-*/
-float requiredAngleToReachTarget(joint *link){
+float requiredAngleToReachTarget(joint *link){  
   float d = distanceToTarget(link->coords, target);
   float x = d - jointsList[link->pin + 1]->length;
   float theta = radiansToDegrees(asin(x/d));
@@ -141,7 +135,7 @@ float requiredAngleToReachTarget(joint *link){
   getCoords(link, theta);
   return theta;
 }
-// The coord output for a single link matches the output from checkPulse() in main.ino for the applied angle found 
+
 void getCoords(joint *link, float theta){
   float distance = link->length * cos(degreesToRadians(theta)); // WORKS
   link -> coords[0] = (distance); // should this be absolute?
@@ -167,10 +161,8 @@ void getCoords(joint *link, float theta){
    row[Y] =   y'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
    row[Z] =   z'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
 
-
-   (!?) Treat the arm as if it only has two links to make it easier to figure out how to handle the math
-          then handle the individual links so they are equivalent to the two-link representation
-*/
+(?) Treat the arm as if it only has two links to make it easier to figure out how to handle the math
+    then handle the individual links so they are equivalent to the two-link representation */
 void rotationMatrixOnX(float theta){
   /* rotate on X
       X   Y   Z
@@ -178,18 +170,17 @@ void rotationMatrixOnX(float theta){
   Y   0 cosθ  -sinθ
   Z   0 sinθ  cosθ
   */
-  float rowX[3] = {1, 0, 0};
-  float rowY[3] = {0, cos(degreesToRadians(theta)), -sin(degreesToRadians(theta))};
-  float rowZ[3] = {0, sin(degreesToRadians(theta)), cos(degreesToRadians(theta))};
-
-
+ *rotMatrix[0] = 1, 0, 0;
+ *rotMatrix[1] = 0, cos(degreesToRadians(theta)), -sin(degreesToRadians(theta));
+ *rotMatrix[2] = 0, sin(degreesToRadians(theta)), cos(degreesToRadians(theta));
 
 // Issues
-  float *thisMatrix[3] = {rowX, rowY, rowZ};
-  for (int i=0; i<=2; i++){
-    for (int j = 0; j<=2;j++){
-      rotMatrix[i][j] = thisMatrix[i][j];
-      Serial.print(rotMatrix[i][j]);  
+  printMatrix();
+  for (int i=0; i<2; i++){
+    rotMatrix[i];
+    //Serial.println(i);
+    for (int j = 0; j<2;j++){
+      Serial.print(rotMatrix[i][j]);   //~~$$$$$$$$~~ 
       Serial.print(",");
     }
     Serial.println(" ");
@@ -203,12 +194,9 @@ void rotationMatrixOnY(float theta){
   Y  0     1   0
   Z  -sinθ 0   cosθ
   */
-  float rowX[3] = {cos(degreesToRadians(theta)), 0, sin(degreesToRadians(theta))};
-  float rowY[3] = {0, 1, 0};
-  float rowZ[3] = {0, -sin(degreesToRadians(theta)), cos(degreesToRadians(theta))};
-  rotMatrix[0] = rowX;
-  rotMatrix[1] = rowY;
-  rotMatrix[2] = rowZ;
+  *rotMatrix[0] = cos(degreesToRadians(theta)), 0, sin(degreesToRadians(theta));     //~~$$$$$$$$~~ 
+  *rotMatrix[1] = 0, 1, 0;     //~~$$$$$$$$~~ 
+  *rotMatrix[2] = 0, -sin(degreesToRadians(theta)), cos(degreesToRadians(theta));     //~~$$$$$$$$~~ 
 }
 
 void rotationMatrixOnZ(float theta){
@@ -218,74 +206,60 @@ void rotationMatrixOnZ(float theta){
   Y  sinθ  cosθ   0     
   Z  0     0      1     
   */
-  float rowX[3] = {cos(degreesToRadians(theta)), -sin(degreesToRadians(theta)), sin(degreesToRadians(theta))};
-  float rowY[3] = {sin(degreesToRadians(theta)), cos(degreesToRadians(theta)), 0};
-  float rowZ[3] = {0, 0, 1};
-  rotMatrix[0] = rowX;
-  rotMatrix[1] = rowY;
-  rotMatrix[2] = rowZ;
+  *rotMatrix[0] = cos(degreesToRadians(theta)), -sin(degreesToRadians(theta)), sin(degreesToRadians(theta));
+  *rotMatrix[1] = sin(degreesToRadians(theta)), cos(degreesToRadians(theta)), 0;
+  *rotMatrix[2] = 0, 0, 1;
 }
 
 // Issues
 void multiplyMatrices(int axisOfRotation, float vector[3], float theta){ // the "vector" is the link coords
-  Serial.println(axisOfRotation);
-  printMatrix();
-  int option = axisOfRotation;
-  if (option == 1){
-    Serial.println("rotate on X");
-    rotationMatrixOnX(theta);
-  }
-  if (option == 2){
-    Serial.println("rotate on Y");
-    rotationMatrixOnY(theta);
-  }
-  if (option == 3){
-    Serial.println("rotate on Z");
-    rotationMatrixOnZ(theta);
-  }
-  printMatrix();
-  float coord;
-  float colX;
-  float colY;
-  float colZ;
-  float matrixColumn[3] = {colX, colY, colZ};
-  float product;
-  float total=0;
-  float newVector[3];
-  for(int row=0; row<3; row++){
-    Serial.println("in loop");
-    //colX = rotMatrix[row][0];
-    //colY = rotMatrix[row][1];
-    //colZ = rotMatrix[row][2];
-    //matrixColumn[3] = colX, colY, colZ;
-    coord = vector[row];
-    for(int j=0; j<3; j++){
-      product = rotMatrix[row][j] * coord;
-      total = total + product;
+    int option = axisOfRotation;
+    if (option == 1){
+      Serial.println("rotate on X");
+      rotationMatrixOnX(theta);  //~~$$$$$$$$~~ 
     }
-    newVector[row] = total;
-  }
+    if (option == 2){
+      Serial.println("rotate on Y");
+      rotationMatrixOnY(theta);
+    }
+    if (option == 3){
+      Serial.println("rotate on Z");
+      rotationMatrixOnZ(theta);
+    }
+    float coord;
+    float product;
+    float total=0;
+    float newVector[3];
+    for(int row=0; row<=2; row++){
+      Serial.println("in loop");
+      coord = vector[row];
+      for(int j=0; j<=2; j++){
+        product = rotMatrix[row][j] * coord;     //~~$$$$$$$$~~ 
+        total = total + product;
+      }
+      newVector[row] = total;
+    }
 }
 
-void printMatrix(){
-  Serial.print(rotMatrix[0][0]);
-  Serial.print(",");
-  Serial.print(rotMatrix[0][1]);
-  Serial.print(",");
-  Serial.println(rotMatrix[0][2]);
+void printMatrix(){        //~~$$$$$$$$~~ 
+  Serial.println("printing");
+  int i = 0;
+  int j = 0;
+  for(i; i<3;i++){
+    i = i;
+    Serial.println(i);
+    for(j; j<3; j++){
+    Serial.print("pin: ");
+    Serial.print(i);
+    Serial.print(" : ");
+    Serial.print(rotMatrix[i][j]);
+    Serial.print(", ");
+    Serial.print(rotMatrix[i][j]);
+    Serial.print(", ");
+    Serial.println(rotMatrix[i][j]);
+    }
+  }
 
-  Serial.print(rotMatrix[1][0]);
-  Serial.print(",");
-  Serial.print(rotMatrix[1][1]);
-  Serial.print(",");
-  Serial.println(rotMatrix[1][2]);
-
-  Serial.print(rotMatrix[2][0]);
-  Serial.print(",");
-  Serial.print(rotMatrix[2][1]);
-  Serial.print(",");
-  Serial.println(rotMatrix[2][2]);
-  Serial.println("----------");
 }
 //*******************************************************************************
 //*******************************************************************************
@@ -322,6 +296,7 @@ void loop(){
     }
     if(r == '\n'){}
     //theta = requiredAngleToReachTarget(link);
-    multiplyMatrices(axis, link->coords, angle);
+    multiplyMatrices(axis, link->coords, angle); // 11/11 Try passing the link object instead, then taking the coords in the function
+    printMatrix();
   }
 }
