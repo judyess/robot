@@ -52,9 +52,9 @@ joint link4 = {4, {0, 0, link4.length}, 2, tickPos4};
 joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
-float target[3] = {7,6, 0};
+float target[3] = {7,6,0};
 
-float inputAngle = 0;
+float inputAngle = 45;
  rotationMatrix xaxis = {
   inputAngle,
   {1, 0, 0},
@@ -83,8 +83,7 @@ int *testMatrix = malloc(sizeof(int)*3);
 
 
 void setup() {
-  
-  Serial.begin(19200); 
+  Serial.begin(9600); 
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
   pwm.setPWM(base.pin,0,base.jointPosition);
@@ -97,6 +96,9 @@ void setup() {
   initializeY();
   delay(100);
   print();
+
+  inputAngle = 0;
+
   testMatrix[0] = 77;
   testMatrix[1] = 88;
   testMatrix[2] = 99;
@@ -115,13 +117,11 @@ void printArray(int array[], int arraySize){
   }
   Serial.println();
 }
-
 void updateArray(int x, int y, int z){
   testMatrix[0] = x;
   testMatrix[1] = y;
   testMatrix[2] = z;
 }
-
 void initializeY(){ 
   float jLength;
   float iLength;
@@ -136,6 +136,7 @@ void initializeY(){
     jointsList[i]->coords[2] = total;
   }
 }
+
 int convertToTicks(float degrees){
   float pulse = map(degrees, 0, 180, MIN_PULSE_WIDTH, MAX_PULSE_WIDTH); 
   int ticks = int(float(pulse) / 1000000 * FREQUENCY * 4096); 
@@ -161,7 +162,7 @@ void print(){
   }
 }
 
-float  distanceToTarget(float pointA[3], float pointB[3]){
+float  distanceToTarget(float pointA[3], float pointB[3]){ // this is just on a 2D plane. 
   float targetX = pointB[0];
   float targetY = pointB[1];
   float myPosX = pointA[0];
@@ -183,7 +184,7 @@ float requiredAngleToReachTarget(joint *link){
 void getCoords(joint *link, float theta){
   float distance = link->length * cos(degreesToRadians(theta)); // WORKS
   link -> coords[0] = (distance); // should this be absolute?
-  Serial.print("Coords: (");
+  Serial.print("Link's new coords: (");
   Serial.print(link -> coords[0]);
   Serial.print(", ");
   float height = link->length * (sin(degreesToRadians(theta))); //WORKS
@@ -205,16 +206,12 @@ void getCoords(joint *link, float theta){
    row[Y] =   y'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
    row[Z] =   z'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
 
-(?) Treat the arm as if it only has two links to make it easier to figure out how to handle the math
-    then handle the individual links so they are equivalent to the two-link representation */
   /* rotate on X
       X   Y   Z
   X   1   0   0
   Y   0 cosθ  -sinθ
   Z   0 sinθ  cosθ
   */
-
-    //Serial.println(i);
 
   /* rotate on Y
       X    Y     Z
@@ -223,7 +220,6 @@ void getCoords(joint *link, float theta){
   Z  -sinθ 0   cosθ
   */
 
-
   /* rotate on Z
       X     Y     Z
   X  cosθ  -sinθ  sinθ    
@@ -231,45 +227,68 @@ void getCoords(joint *link, float theta){
   Z  0     0      1     
   */
 
-
-
-
-
 //*******************************************************************************
 //*******************************************************************************
+
+void multiplyMatrices(rotationMatrix *axis, joint *link){ // WORKSSSSS
+  float newVector[3] = {0,0,0};
+  float totalx = 0;
+  float totaly = 0;
+  float totalz = 0;
+  
+    for(int i=0; i<=2; i++){
+      float xval = axis->x[i];
+      float yval = axis->y[i];
+      float zval = axis->z[i];
+      totalx += newVector[i] + (xval * (link->coords[i]));
+      totaly += newVector[i] + (yval * (link->coords[i]));
+      totalz += newVector[i] + (zval * (link->coords[i]));
+      Serial.print(newVector[i]);
+      Serial.print(" : ");
+      Serial.println(link->coords[i]);
+      Serial.print(totalx);
+      Serial.print(", ");
+      Serial.print(totaly);
+      Serial.print(", ");
+      Serial.println(totalz);
+    }
+
+}
 
 void loop(){
   float pin, angle;
   joint *link;
-  angle = 0;
   float theta = 0;
   int axis;
+  rotationMatrix *rAxis;
   while(Serial.available() > 0)
   {
-    
-    pin = Serial.parseInt();
-    
     axis = Serial.parseInt();
+    pin = Serial.parseInt();
     angle = Serial.parseFloat();
     
     char r = Serial.read();
     if (pin == 0){
-      link = &base;
-    }
+      link = &base;}
     if (pin == 1){
-      link = &link1;
-    }
+      link = &link1;}
     if (pin == 2){
-      link = &link2;
-    }
+      link = &link2;}
     if (pin == 3){
-      link = &link3;
-    }
+      link = &link3;}
     if (pin == 4){
-      link = &link4;
-    }
+      link = &link4;}
     if(r == '\n'){}
-    theta = requiredAngleToReachTarget(link);
+
+    if (axis == 0){
+      rAxis = &xaxis;}
+    if (axis == 1){
+      rAxis = &yaxis;}
+    if(axis == 2){
+      rAxis = &zaxis;
+    }
+    //theta = requiredAngleToReachTarget(link);
+    multiplyMatrices(rAxis, link);
 
   }
 }
