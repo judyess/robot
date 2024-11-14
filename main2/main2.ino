@@ -8,7 +8,8 @@
 #define degreesToRadians(angleDegrees) (angleDegrees * M_PI / 180.0)
 #define radiansToDegrees(angleRadians) (angleRadians * 180.0 / M_PI)
 #define PI 3.1415926535897932384626433832795
-#define getArraySize(array) (sizeof(array)/sizeof(int))
+
+// #define getArraySize(array) (sizeof(array)/sizeof(int)) ----- Always returns 1. Do not use. Will have to hard code the array sizes in
 
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
 
@@ -44,7 +45,7 @@ joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 float target[3] = {7,6, 0};
 
-double *rotMatrix[3] = {0, 0, 0}; //~~$$$$$$$$~~ 
+double *rotMatrix[3]; // = {0, 0, 0}; //~~$$$$$$$$~~ 
 int *testMatrix = malloc(sizeof(int)*3);
 
 
@@ -63,19 +64,27 @@ void setup() {
   initializeY();
   delay(100);
   print();
-  arrayTest(testMatrix, getArraySize(&testMatrix));
+  testMatrix[0] = 88;
+  testMatrix[1] = 99;
+  testMatrix[2] = 100;
+  printArray(testMatrix, 3); 
+  updateArray(11, 22, 33);
+  printArray(testMatrix, 3);
+
 }
 
-void arrayTest(int array[], int arraySize){
-  array[0] = 88;
-  array[1] = 99;
-  array[2] = 100;
-  printArray(array, arraySize);
-}
+
 void printArray(int array[], int arraySize){
+  arraySize = 3; // arraySize isn't right
   for (int i=0; i<arraySize; i++){
     Serial.print(array[i]);
   }
+}
+
+void updateArray(int x, int y, int z){
+  testMatrix[0] = x;
+  testMatrix[1] = y;
+  testMatrix[2] = z;
 }
 
 void initializeY(){ 
@@ -180,6 +189,7 @@ void rotationMatrixOnX(float theta){
     rotMatrix[i];
     //Serial.println(i);
     for (int j = 0; j<2;j++){
+      delay(100);
       Serial.print(rotMatrix[i][j]);   //~~$$$$$$$$~~ 
       Serial.print(",");
     }
@@ -246,7 +256,7 @@ void printMatrix(){        //~~$$$$$$$$~~
   int i = 0;
   int j = 0;
   for(i; i<3;i++){
-    i = i;
+    delay(100);
     Serial.println(i);
     for(j; j<3; j++){
     Serial.print("pin: ");
