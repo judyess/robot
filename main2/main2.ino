@@ -232,25 +232,15 @@ void getCoords(joint *link, float theta){
 
 void multiplyMatrices(rotationMatrix *axis, joint *link){ // WORKSSSSS
   float newVector[3] = {0,0,0};
-  float totalx = 0;
-  float totaly = 0;
-  float totalz = 0;
-  
     for(int i=0; i<=2; i++){
-      float xval = axis->x[i];
-      float yval = axis->y[i];
-      float zval = axis->z[i];
-      totalx += newVector[i] + (xval * (link->coords[i]));
-      totaly += newVector[i] + (yval * (link->coords[i]));
-      totalz += newVector[i] + (zval * (link->coords[i]));
-      Serial.print(newVector[i]);
-      Serial.print(" : ");
-      Serial.println(link->coords[i]);
-      Serial.print(totalx);
+      newVector[0] += newVector[i] + (axis->x[i] * (link->coords[i]));
+      newVector[1] += newVector[i] + (axis->y[i] * (link->coords[i]));
+      newVector[2] += newVector[i] + (axis->z[i] * (link->coords[i]));
+      Serial.print(newVector[0]);
       Serial.print(", ");
-      Serial.print(totaly);
+      Serial.print(newVector[1]);
       Serial.print(", ");
-      Serial.println(totalz);
+      Serial.println(newVector[2]);
     }
 
 }
