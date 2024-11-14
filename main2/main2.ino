@@ -32,9 +32,18 @@ struct joint{
   float jointPosition;  
 };
 
+
+struct rotationMatrix{
+  float theta;
+  float x[3];
+  float y[3];
+  float z[3];
+};
+
+
+
 const float xbase=0;
 const float ybase=0;
-
 joint base = {0, {xbase, ybase, 3.5}, 3.5, 0}; // only the base's Z value will be changing
 joint link1 = {1, {0, 0, link1.length}, 5, tickPos1};
 joint link2 = {2, {0, 0, link2.length}, 3.5, tickPos2};
@@ -44,6 +53,30 @@ joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
 
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 float target[3] = {7,6, 0};
+
+float inputAngle = 0;
+ rotationMatrix xaxis = {
+  inputAngle,
+  {1, 0, 0},
+  {0, cos(degreesToRadians(inputAngle)), -sin(degreesToRadians(inputAngle))},
+  {0, sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle))}
+  };
+
+ rotationMatrix yaxis = {
+  inputAngle,
+  {cos(degreesToRadians(inputAngle)), 0, sin(degreesToRadians(inputAngle))},
+  {0, 1, 0},
+  {0, -sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle))}
+  };
+
+ rotationMatrix zaxis = {
+  inputAngle,
+  {cos(degreesToRadians(inputAngle)), -sin(degreesToRadians(inputAngle)), sin(degreesToRadians(inputAngle))},
+  {sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle)), 0},
+  {0, 0, 1}
+  };
+
+
 
 double *rotMatrix[3]; // = {0, 0, 0}; //~~$$$$$$$$~~ 
 int *testMatrix = malloc(sizeof(int)*3);
@@ -174,105 +207,34 @@ void getCoords(joint *link, float theta){
 
 (?) Treat the arm as if it only has two links to make it easier to figure out how to handle the math
     then handle the individual links so they are equivalent to the two-link representation */
-void rotationMatrixOnX(float theta){
   /* rotate on X
       X   Y   Z
   X   1   0   0
   Y   0 cosθ  -sinθ
   Z   0 sinθ  cosθ
   */
- *rotMatrix[0] = 1, 0, 0;
- *rotMatrix[1] = 0, cos(degreesToRadians(theta)), -sin(degreesToRadians(theta));
- *rotMatrix[2] = 0, sin(degreesToRadians(theta)), cos(degreesToRadians(theta));
 
-// Issues
-  printMatrix();
-  for (int i=0; i<2; i++){
-    rotMatrix[i];
     //Serial.println(i);
-    for (int j = 0; j<2;j++){
-      delay(100);
-      Serial.print(rotMatrix[i][j]);   //~~$$$$$$$$~~ 
-      Serial.print(",");
-    }
-    Serial.println(" ");
-  }
-}
 
-void rotationMatrixOnY(float theta){
   /* rotate on Y
       X    Y     Z
   X  cosθ  0   sinθ
   Y  0     1   0
   Z  -sinθ 0   cosθ
   */
-  *rotMatrix[0] = cos(degreesToRadians(theta)), 0, sin(degreesToRadians(theta));     //~~$$$$$$$$~~ 
-  *rotMatrix[1] = 0, 1, 0;     //~~$$$$$$$$~~ 
-  *rotMatrix[2] = 0, -sin(degreesToRadians(theta)), cos(degreesToRadians(theta));     //~~$$$$$$$$~~ 
-}
 
-void rotationMatrixOnZ(float theta){
+
   /* rotate on Z
       X     Y     Z
   X  cosθ  -sinθ  sinθ    
   Y  sinθ  cosθ   0     
   Z  0     0      1     
   */
-  *rotMatrix[0] = cos(degreesToRadians(theta)), -sin(degreesToRadians(theta)), sin(degreesToRadians(theta));
-  *rotMatrix[1] = sin(degreesToRadians(theta)), cos(degreesToRadians(theta)), 0;
-  *rotMatrix[2] = 0, 0, 1;
-}
 
-// Issues
-void multiplyMatrices(int axisOfRotation, float vector[3], float theta){ // the "vector" is the link coords
-    int option = axisOfRotation;
-    if (option == 1){
-      Serial.println("rotate on X");
-      rotationMatrixOnX(theta);  //~~$$$$$$$$~~ 
-    }
-    if (option == 2){
-      Serial.println("rotate on Y");
-      rotationMatrixOnY(theta);
-    }
-    if (option == 3){
-      Serial.println("rotate on Z");
-      rotationMatrixOnZ(theta);
-    }
-    float coord;
-    float product;
-    float total=0;
-    float newVector[3];
-    for(int row=0; row<=2; row++){
-      Serial.println("in loop");
-      coord = vector[row];
-      for(int j=0; j<=2; j++){
-        product = rotMatrix[row][j] * coord;     //~~$$$$$$$$~~ 
-        total = total + product;
-      }
-      newVector[row] = total;
-    }
-}
 
-void printMatrix(){        //~~$$$$$$$$~~ 
-  Serial.println("printing");
-  int i = 0;
-  int j = 0;
-  for(i; i<3;i++){
-    delay(100);
-    Serial.println(i);
-    for(j; j<3; j++){
-    Serial.print("pin: ");
-    Serial.print(i);
-    Serial.print(" : ");
-    Serial.print(rotMatrix[i][j]);
-    Serial.print(", ");
-    Serial.print(rotMatrix[i][j]);
-    Serial.print(", ");
-    Serial.println(rotMatrix[i][j]);
-    }
-  }
 
-}
+
+
 //*******************************************************************************
 //*******************************************************************************
 
@@ -307,8 +269,7 @@ void loop(){
       link = &link4;
     }
     if(r == '\n'){}
-    //theta = requiredAngleToReachTarget(link);
-    multiplyMatrices(axis, link->coords, angle); // 11/11 Try passing the link object instead, then taking the coords in the function
-    printMatrix();
+    theta = requiredAngleToReachTarget(link);
+
   }
 }
