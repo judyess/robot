@@ -126,7 +126,7 @@ void initializeY(){
   float jLength;
   float iLength;
   float total;
-  for(int i=0; i <= 5; i+=1){
+  for(int i=1; i <= 5; i+=1){
     iLength = jointsList[i]->length;
       for(int j=i-1; j>=0; j-=1){
         jLength = jointsList[j]->length;
