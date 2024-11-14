@@ -64,9 +64,9 @@ void setup() {
   initializeY();
   delay(100);
   print();
-  testMatrix[0] = 88;
-  testMatrix[1] = 99;
-  testMatrix[2] = 100;
+  testMatrix[0] = 77;
+  testMatrix[1] = 88;
+  testMatrix[2] = 99;
   printArray(testMatrix, 3); 
   updateArray(11, 22, 33);
   printArray(testMatrix, 3);
@@ -78,7 +78,9 @@ void printArray(int array[], int arraySize){
   arraySize = 3; // arraySize isn't right
   for (int i=0; i<arraySize; i++){
     Serial.print(array[i]);
+    Serial.print(",");
   }
+  Serial.println();
 }
 
 void updateArray(int x, int y, int z){
