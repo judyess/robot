@@ -40,8 +40,6 @@ struct rotationMatrix{
   float z[3];
 };
 
-
-
 const float xbase=0;
 const float ybase=0;
 joint base = {0, {xbase, ybase, 3.5}, 3.5, 0}; // only the base's Z value will be changing
@@ -54,32 +52,33 @@ joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
 float target[3] = {7,6,0};
 
-float inputAngle = 45;
+
+
+float *inputAngle; 
+void setAngle(float angle){ // WORKS. CORRECTLY SETS THE ANGLE FOR THE ROTATION MATRICES TO USE
+  *inputAngle = angle;
+}
+
  rotationMatrix xaxis = {
-  inputAngle,
+  *inputAngle,
   {1, 0, 0},
-  {0, cos(degreesToRadians(inputAngle)), -sin(degreesToRadians(inputAngle))},
-  {0, sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle))}
+  {0, cos(*inputAngle * M_PI / 180.0), -sin(*inputAngle * M_PI / 180.0)},
+  {0, sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0)}
   };
 
  rotationMatrix yaxis = {
-  inputAngle,
-  {cos(degreesToRadians(inputAngle)), 0, sin(degreesToRadians(inputAngle))},
+  *inputAngle,
+  {cos(*inputAngle * M_PI / 180.0), 0, sin(*inputAngle * M_PI / 180.0)},
   {0, 1, 0},
-  {0, -sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle))}
+  {0, -sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0)}
   };
 
  rotationMatrix zaxis = {
-  inputAngle,
-  {cos(degreesToRadians(inputAngle)), -sin(degreesToRadians(inputAngle)), sin(degreesToRadians(inputAngle))},
-  {sin(degreesToRadians(inputAngle)), cos(degreesToRadians(inputAngle)), 0},
+  *inputAngle,
+  {cos(*inputAngle * M_PI / 180.0), -sin(*inputAngle * M_PI / 180.0), sin(*inputAngle * M_PI / 180.0)},
+  {sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0), 0},
   {0, 0, 1}
   };
-
-
-
-double *rotMatrix[3]; // = {0, 0, 0}; //~~$$$$$$$$~~ 
-int *testMatrix = malloc(sizeof(int)*3);
 
 
 void setup() {
@@ -96,16 +95,7 @@ void setup() {
   initializeY();
   delay(100);
   print();
-
-  inputAngle = 0;
-
-  testMatrix[0] = 77;
-  testMatrix[1] = 88;
-  testMatrix[2] = 99;
-  printArray(testMatrix, 3); 
-  updateArray(11, 22, 33);
-  printArray(testMatrix, 3);
-
+  setAngle(90); // WORKS... but only here. If I call this in the loop I get overflow stuff
 }
 
 
@@ -117,11 +107,7 @@ void printArray(int array[], int arraySize){
   }
   Serial.println();
 }
-void updateArray(int x, int y, int z){
-  testMatrix[0] = x;
-  testMatrix[1] = y;
-  testMatrix[2] = z;
-}
+
 void initializeY(){ 
   float jLength;
   float iLength;
@@ -172,7 +158,7 @@ float  distanceToTarget(float pointA[3], float pointB[3]){ // this is just on a 
   Serial.println(distance); // the hypotenuse
   return distance;
 }
-float requiredAngleToReachTarget(joint *link){  
+float requiredAngleToReachTarget(joint *link){  // for a 2D plane
   float d = distanceToTarget(link->coords, target);
   float x = d - jointsList[link->pin + 1]->length;
   float theta = radiansToDegrees(asin(x/d));
@@ -230,32 +216,48 @@ void getCoords(joint *link, float theta){
 //*******************************************************************************
 //*******************************************************************************
 
-void multiplyMatrices(rotationMatrix *axis, joint *link){ // WORKSSSSS
+void multiplyMatrices(joint *link, rotationMatrix *axis){ // WORKSSSSS, for single links at least. 2nd rotations after updating coords are wrong though. 
   float newVector[3] = {0,0,0};
+  Serial.println(axis->theta);
     for(int i=0; i<=2; i++){
+      Serial.print(i);
+      Serial.print(": ");
+      Serial.print(newVector[0]);
+      Serial.print(", ");
+      Serial.print(newVector[1]);
+      Serial.print(", ");
+      Serial.print(newVector[2]);
       newVector[0] += newVector[i] + (axis->x[i] * (link->coords[i]));
       newVector[1] += newVector[i] + (axis->y[i] * (link->coords[i]));
       newVector[2] += newVector[i] + (axis->z[i] * (link->coords[i]));
+      Serial.print("  =>  ");
       Serial.print(newVector[0]);
       Serial.print(", ");
       Serial.print(newVector[1]);
       Serial.print(", ");
       Serial.println(newVector[2]);
     }
-
+    /* // BLOCKED OUT BECAUSE UPDATING THE LINK OBJECTS ARE CAUSING ISSUES IF I TRY ROTATING AGAIN
+    for (int i = 0; i<3 ; i++){
+      link->coords[i] = newVector[i];
+      Serial.print(link->coords[i]);
+      Serial.print(", ");
+    }
+    */
+    Serial.println();
 }
 
 void loop(){
-  float pin, angle;
+  float pin;
   joint *link;
-  float theta = 0;
+  float angle = 0;
   int axis;
   rotationMatrix *rAxis;
   while(Serial.available() > 0)
   {
-    axis = Serial.parseInt();
     pin = Serial.parseInt();
     angle = Serial.parseFloat();
+    axis = Serial.parseInt();
     
     char r = Serial.read();
     if (pin == 0){
@@ -271,14 +273,20 @@ void loop(){
     if(r == '\n'){}
 
     if (axis == 0){
-      rAxis = &xaxis;}
+      rAxis = &xaxis;
+      Serial.println("x-axis");}
     if (axis == 1){
-      rAxis = &yaxis;}
+      rAxis = &yaxis;
+      Serial.println("y-axis");}
     if(axis == 2){
       rAxis = &zaxis;
+      Serial.println("z-axis");
     }
-    //theta = requiredAngleToReachTarget(link);
-    multiplyMatrices(rAxis, link);
+    //setAngle(angle); // will update axis->theta but causes overflow and matrix multiplication is weird
+    delay(100);
+    //requiredAngleToReachTarget(link);
+    //Serial.println(pin);
+    multiplyMatrices(link, rAxis);
 
   }
 }
