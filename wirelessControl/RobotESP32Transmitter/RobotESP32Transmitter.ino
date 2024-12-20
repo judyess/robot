@@ -1,10 +1,15 @@
 // Joystick Controller Side (Transmitter)
 //  ESP32   | Joystick
 // pin IO32   x out
-// pin IO35   y out
-// pin IO34   switch
+// pin IO34   y out
+// pin IO35   switch (joystick push)
 #include <WiFi.h>
 #include <esp_now.h>
+#include <Wire.h>
+
+const int xOut = 32;
+const int yOut = 34;
+const int sel = 35;
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; //MAC addresses with 0x in front of each part
@@ -14,7 +19,8 @@ uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; //MAC address
 
 // Define a data structure
 typedef struct data_struct {
-  int a;
+  int pin;
+  int change;
 } data_struct;
 
 data_struct myData;
@@ -39,11 +45,33 @@ void setup() {
   esp_now_add_peer(&peerInfo);
 }
 
-void loop() {
+void loop(){
+/*
   if(Serial.available() > 0){ // try a while loop instead to fix the double send thing
     int input = Serial.parseInt();
     myData.a = input;
     // Why is this sending data twice? First is the int that I enter, then "0" gets sent after. ??
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+  }
+  */
+  if(analogRead(xOut) > 600){
+    myData.pin = 1;
+    myData.change = 1;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+  }
+  if(analogRead(xOut) < 400){
+    myData.pin = 1;
+    myData.change = -1;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+  }
+  if(analogRead(yOut) > 600){
+    myData.pin = 2;
+    myData.change = 1;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+  }
+  if(analogRead(yOut) < 400){
+    myData.pin = 2;
+    myData.change = -1;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
   }
 }
