@@ -1,4 +1,4 @@
-// Robot Side (Receiver)
+// Robot Side (Receiver) Works
 // ESP32 | PCA9685
 //  IO21   SDA
 //  IO22   SCL
@@ -25,6 +25,7 @@ float delayTime = 200;
 typedef struct data_struct {
   int pin;
   int change;
+  float output;
 } data_struct;
 data_struct myData;
 
@@ -47,10 +48,8 @@ void moveMotor(joint *joint, float change){
 
 void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
-  Serial.print("Data received: ");
-  Serial.println(len); 
-  Serial.print("Data: ");
-  Serial.println(myData.change);
+  Serial.print("Link : ");
+  Serial.println(myData.pin); 
   if(myData.pin == 1){
     moveMotor(&link1, myData.change);
   }
@@ -69,6 +68,7 @@ void setup() {
   pwm.setPWMFreq(FREQUENCY);
   pwm.setPWM(1,0,posA);
   pwm.setPWM(2,0,posB);
+  Serial.println("Receiver Ready");
 }
  
 void loop() {

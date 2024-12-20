@@ -1,15 +1,16 @@
-// Joystick Controller Side (Transmitter)
+// Joystick Controller Side (Transmitter) Works
 //  ESP32   | Joystick
 // pin IO32   x out
-// pin IO34   y out
-// pin IO35   switch (joystick push)
+// pin IO35   y out
+// pin IO34   switch (joystick push)
+// ESP32 analog output ranges from 0 to 4095
 #include <WiFi.h>
 #include <esp_now.h>
 #include <Wire.h>
 
 const int xOut = 32;
-const int yOut = 34;
-const int sel = 35;
+const int yOut = 35;
+const int sel = 34;
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; //MAC addresses with 0x in front of each part
@@ -54,24 +55,28 @@ void loop(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
   }
   */
-  if(analogRead(xOut) > 600){
+  while(analogRead(xOut) > 2200){
     myData.pin = 1;
     myData.change = 1;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(200);
   }
-  if(analogRead(xOut) < 400){
+  while(analogRead(xOut) < 1600){
     myData.pin = 1;
     myData.change = -1;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(200);
   }
-  if(analogRead(yOut) > 600){
+    while(analogRead(yOut) > 2200){
     myData.pin = 2;
     myData.change = 1;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(200);
   }
-  if(analogRead(yOut) < 400){
+  while(analogRead(yOut) < 1600){
     myData.pin = 2;
     myData.change = -1;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(200);
   }
 }
