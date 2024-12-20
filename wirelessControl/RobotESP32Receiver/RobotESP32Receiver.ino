@@ -7,16 +7,19 @@
 
 #include <esp_now.h>
 #include <WiFi.h>
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
+#include <Wire.h> //I2C
+#include <Adafruit_PWMServoDriver.h> // PCA9685
 
 #define MIN_PULSE_WIDTH       500 
 #define MAX_PULSE_WIDTH       2500 
 #define FREQUENCY             60
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
 float posA = 400;
 float posB = 400;
+
+#define motor1 1
+#define motor2 2
 
 float precision = 0.5;
 float delayTime = 200;
@@ -41,9 +44,10 @@ joint link2 = {2, 3.5, posB};
 void moveMotor(joint *joint, float change){
   float currentPosition = joint->jointPosition;
   float newPosition = currentPosition + change;
+  pwm.setPWM(joint->pin, 0, newPosition);
   joint->jointPosition = newPosition;
   Serial.println(joint->jointPosition);
-  delay(delayTime);
+  //delay(delayTime);
 }
 
 void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
@@ -57,7 +61,6 @@ void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     moveMotor(&link2, myData.change);
   }
 }
-
 
 void setup() {
   Serial.begin(115200);

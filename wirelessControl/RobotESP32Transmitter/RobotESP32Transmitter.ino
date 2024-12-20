@@ -8,15 +8,19 @@
 #include <esp_now.h>
 #include <Wire.h>
 
+int delayTime = 50;
+int precision = 5;
+
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
 
 // MAC Address of the ESP32 that will receive this data.
-uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; //MAC addresses with 0x in front of each part
+uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0C, 0x85, 0x98}; //MAC addresses with 0x in front of each part
 // {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; HILETGO ESP32 (slim profile one)
-// {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; AITRIP ESP32 "1"
+// {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; AITRIP ESP32 "1" (fried)
 // {0xA0, 0xDD, 0x6C, 0x0F, 0x87, 0xF4}; AITRIP ESP32 "2"
+// a0:dd:6c:0c:85:98 ESP32 
 
 // Define a data structure
 typedef struct data_struct {
@@ -44,39 +48,39 @@ void setup() {
   peerInfo.channel = 0;  
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
+
+  pinMode(15, INPUT_PULLUP);
+
+  Serial.println("Transmitter Ready");
 }
 
 void loop(){
-/*
-  if(Serial.available() > 0){ // try a while loop instead to fix the double send thing
-    int input = Serial.parseInt();
-    myData.a = input;
-    // Why is this sending data twice? First is the int that I enter, then "0" gets sent after. ??
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+  if(digitalRead(15)==LOW){
+    Serial.println("button was pushed");
+    delay(100);
   }
-  */
   while(analogRead(xOut) > 2200){
     myData.pin = 1;
-    myData.change = 1;
+    myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(200);
+    delay(delayTime);
   }
   while(analogRead(xOut) < 1600){
     myData.pin = 1;
-    myData.change = -1;
+    myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(200);
+    delay(delayTime);
   }
     while(analogRead(yOut) > 2200){
     myData.pin = 2;
-    myData.change = 1;
+    myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(200);
+    delay(delayTime);
   }
   while(analogRead(yOut) < 1600){
     myData.pin = 2;
-    myData.change = -1;
+    myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(200);
+    delay(delayTime);
   }
 }
