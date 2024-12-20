@@ -1,4 +1,10 @@
 // Robot Side (Receiver)
+// ESP32 | PCA9685
+//  IO21   SDA
+//  IO22   SCL
+//  3v3    VCC (NOT VIN)
+//  GND    GND
+
 #include <esp_now.h>
 #include <WiFi.h>
 

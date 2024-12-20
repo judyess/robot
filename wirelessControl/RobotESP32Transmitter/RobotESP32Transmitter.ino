@@ -1,4 +1,8 @@
 // Joystick Controller Side (Transmitter)
+//  ESP32   | Joystick
+// pin IO32   x out
+// pin IO35   y out
+// pin IO34   switch
 #include <WiFi.h>
 #include <esp_now.h>
 
@@ -36,7 +40,7 @@ void setup() {
 }
 
 void loop() {
-  if(Serial.available() > 0){ // try a while loop instead
+  if(Serial.available() > 0){ // try a while loop instead to fix the double send thing
     int input = Serial.parseInt();
     myData.a = input;
     // Why is this sending data twice? First is the int that I enter, then "0" gets sent after. ??
