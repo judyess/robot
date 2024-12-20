@@ -10,13 +10,10 @@
 #define PI 3.1415926535897932384626433832795
 
 // #define getArraySize(array) (sizeof(array)/sizeof(int)) ----- Always returns 1. Do not use. Will have to hard code the array sizes in
-
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
-
 int motorSpeed = 2; 
 int minTicks = 122;
 int maxTicks = 614;
-
 // starting tick positions
 float tickPos0 = 368;
 float tickPos1 = 368;
@@ -25,14 +22,14 @@ float tickPos3 = 368;
 float tickPos4 = 368;
 float tickPos5 = 368;
 
+float target[3] = {7,6,0};
+
 struct joint{
   int pin;              
   float coords[3];      
   float length;         
   float jointPosition;  
 };
-
-
 struct rotationMatrix{
   float theta;
   float x[3];
@@ -40,46 +37,37 @@ struct rotationMatrix{
   float z[3];
 };
 
-const float xbase=0;
-const float ybase=0;
-joint base = {0, {xbase, ybase, 3.5}, 3.5, 0}; // only the base's Z value will be changing
+joint base = {0, {0, 0, 3.5}, 3.5, 0}; // only the base's Z value will be changing
 joint link1 = {1, {0, 0, link1.length}, 5, tickPos1};
 joint link2 = {2, {0, 0, link2.length}, 3.5, tickPos2};
 joint link3 = {3, {0, 0, link3.length}, 0.5, tickPos3};
 joint link4 = {4, {0, 0, link4.length}, 2, tickPos4};
 joint efx = {5, {0, 0, efx.length}, 4.5, tickPos5};
-
 joint *jointsList[6]={&base, &link1, &link2, &link3, &link4, &efx};
-float target[3] = {7,6,0};
-
 
 
 float *inputAngle; 
 void setAngle(float angle){ // WORKS. CORRECTLY SETS THE ANGLE FOR THE ROTATION MATRICES TO USE
   *inputAngle = angle;
 }
-
  rotationMatrix xaxis = {
   *inputAngle,
   {1, 0, 0},
   {0, cos(*inputAngle * M_PI / 180.0), -sin(*inputAngle * M_PI / 180.0)},
   {0, sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0)}
   };
-
  rotationMatrix yaxis = {
   *inputAngle,
   {cos(*inputAngle * M_PI / 180.0), 0, sin(*inputAngle * M_PI / 180.0)},
   {0, 1, 0},
   {0, -sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0)}
   };
-
  rotationMatrix zaxis = {
   *inputAngle,
   {cos(*inputAngle * M_PI / 180.0), -sin(*inputAngle * M_PI / 180.0), sin(*inputAngle * M_PI / 180.0)},
   {sin(*inputAngle * M_PI / 180.0), cos(*inputAngle * M_PI / 180.0), 0},
   {0, 0, 1}
   };
-
 
 void setup() {
   Serial.begin(9600); 
@@ -92,23 +80,19 @@ void setup() {
   pwm.setPWM(4,0,tickPos4); 
   Serial.println(" ");
   Serial.println("start");
-  initializeY();
-  delay(100);
-  print();
+  initialize();
+  printLinkList();
   setAngle(90); // WORKS... but only here. If I call this in the loop I get overflow stuff
 }
 
-
 void printArray(int array[], int arraySize){
-  arraySize = 3; // arraySize isn't right
   for (int i=0; i<arraySize; i++){
     Serial.print(array[i]);
     Serial.print(",");
-  }
-  Serial.println();
+  } Serial.println();
 }
 
-void initializeY(){ 
+void initialize(){ 
   float jLength;
   float iLength;
   float total;
@@ -132,7 +116,7 @@ float convertToDegrees(float ticks){
   float degrees = map(ticks, minTicks, maxTicks, 0, 180);
   return degrees;
 }
-void print(){
+void printLinkList(){
   for(int i=0; i<6;i++){
     joint *link = jointsList[i];
     Serial.print("pin: ");
@@ -158,15 +142,6 @@ float  distanceToTarget(float pointA[3], float pointB[3]){ // this is just on a 
   Serial.println(distance); // the hypotenuse
   return distance;
 }
-float requiredAngleToReachTarget(joint *link){  // for a 2D plane
-  float d = distanceToTarget(link->coords, target);
-  float x = d - jointsList[link->pin + 1]->length;
-  float theta = radiansToDegrees(asin(x/d));
-  Serial.println(theta);
-  getCoords(link, theta);
-  return theta;
-}
-
 void getCoords(joint *link, float theta){
   float distance = link->length * cos(degreesToRadians(theta)); // WORKS
   link -> coords[0] = (distance); // should this be absolute?
@@ -179,6 +154,17 @@ void getCoords(joint *link, float theta){
   Serial.print(link -> coords[1]);
   Serial.println(")");
 }
+/*
+Calls distanceToTarget(), getCoords()
+*/
+float requiredAngleToReachTarget(joint *link){  // for a 2D plane
+  float d = distanceToTarget(link->coords, target);
+  float x = d - jointsList[link->pin + 1]->length;
+  float theta = radiansToDegrees(asin(x/d));
+  Serial.println(theta);
+  getCoords(link, theta);
+  return theta;
+}
 
 //******************************ROTATION MATRICES********************************
 /* ROTATION MATRICES BECAUSE TRYING TO DO THE MATH OTHER WAYS KEEPS BEING WEIRD
@@ -186,25 +172,21 @@ void getCoords(joint *link, float theta){
               [x]   |x'|
   (RMatrix) * [y] = |y'|
               [z]   |z'|
-
   for each ROW of Rrc's, where r=row label, c=column label. (Each row[i] refers to the R elements in it's own row.)
    row[X] =   x'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
    row[Y] =   y'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
    row[Z] =   z'  =  Rxx*[x] + Rxy*[y] + Rxz*[z]
-
   /* rotate on X
       X   Y   Z
   X   1   0   0
   Y   0 cosθ  -sinθ
   Z   0 sinθ  cosθ
-  */
 
   /* rotate on Y
       X    Y     Z
   X  cosθ  0   sinθ
   Y  0     1   0
   Z  -sinθ 0   cosθ
-  */
 
   /* rotate on Z
       X     Y     Z
@@ -246,6 +228,8 @@ void multiplyMatrices(joint *link, rotationMatrix *axis){ // WORKSSSSS, for sing
     */
     Serial.println();
 }
+
+
 
 void loop(){
   float pin;
