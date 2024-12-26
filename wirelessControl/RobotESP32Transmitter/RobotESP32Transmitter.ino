@@ -14,6 +14,7 @@
 
 int delayTime = 50;
 int precision = 5;
+int precision2 = 1;
 
 const int xOut = 32;
 const int yOut = 35;
@@ -103,18 +104,21 @@ void loop(){
   //BUTTON CONTROLS
   if(digitalRead(leftPin) != leftState){
     leftState = digitalRead(leftPin);
+    while(leftState == digitalRead(leftPin)){
+      leftState = digitalRead(leftPin);
     myData.pin = 0;
-    myData.change = -precision;
+    myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("left");
-    delay(500);
+    delay(10);
+    }
   }
   if(digitalRead(downPin) != downState){
     downState = digitalRead(downPin);
     while(downState == digitalRead(downPin)){
       downState = digitalRead(downPin);
       myData.pin = 3;
-      myData.change = -precision;
+      myData.change = -precision2;
       esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
       delay(10);
     }
@@ -123,46 +127,58 @@ void loop(){
   }
   if(digitalRead(rightPin) != rightState){
     rightState = digitalRead(rightPin);
+    while(rightState == digitalRead(rightPin)){
+      rightState = digitalRead(rightPin);
     myData.pin = 0;
-    myData.change = precision;
+    myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right");
-    delay(500);
+    delay(10);
+    }
   }
   if(digitalRead(lBlackPin) != lBlackState){
     lBlackState = digitalRead(lBlackPin);
+    while(lBlackState == digitalRead(lBlackPin)){
+      lBlackState = digitalRead(lBlackPin);
     myData.pin = 5;
-    myData.change = -precision;
+    myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     Serial.println("left Black");
-    delay(500);
+    delay(10);
+    }
   }
     if(digitalRead(upPin) != upState){
     upState = digitalRead(upPin);
+    while(upState == digitalRead(upPin)){
+      upState = digitalRead(upPin);
     myData.pin = 3;
-    myData.change = precision;
+    myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("up");
-    delay(500);
+    delay(10);
+    }
   }
     if(digitalRead(rBlackPin) != rBlackState){
     rBlackState = digitalRead(rBlackPin);
+    while(rBlackState == digitalRead(rBlackPin)){
+      rBlackState = digitalRead(rBlackPin);
     myData.pin = 5;
-    myData.change = precision;
+    myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right Black");
-    delay(500);
+    delay(10);
+    }
   }
     if(digitalRead(sel) == HIGH && digitalRead(rBlackPin) == HIGH){
     myData.pin = 4;
-    myData.change = precision;
+    myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(500);
+    delay(10);
   }
     if(digitalRead(sel) == HIGH && digitalRead(lBlackPin) == HIGH){
     myData.pin = 4;
-    myData.change = -precision;
+    myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(500);
+    delay(10);
   }
 }

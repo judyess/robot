@@ -40,18 +40,26 @@ struct joint{
   int pin;              
   float len;         
   float jointPosition;  
+  float min;
+  float max;
 };
 
-joint base = {0, 4, posA};
-joint link1 = {1, 5, posB};
-joint link2 = {2, 3.5, posC};
-joint link3 = {3, 1, posD};
-joint link4 = {4, 2, posE};
-joint endEffector = {5, 2, posF};
+joint base = {0, 4, posA, 150, 900};
+joint link1 = {1, 5, posB, 150, 900};
+joint link2 = {2, 3.5, posC, 150, 900};
+joint link3 = {3, 1, posD, 150, 900};
+joint link4 = {4, 2, posE, 150, 900};
+joint endEffector = {5, 2, posF, 350, 665};
 
 void moveMotor(joint *joint, float change){
   float currentPosition = joint->jointPosition;
   float newPosition = currentPosition + change;
+  if(newPosition > joint -> max){
+    newPosition = joint -> max;
+  }
+  if(newPosition < joint -> min){
+    newPosition = joint -> min;
+  }
   pwm.setPWM(joint->pin, 0, newPosition);
   joint->jointPosition = newPosition;
   Serial.println(joint->jointPosition);
