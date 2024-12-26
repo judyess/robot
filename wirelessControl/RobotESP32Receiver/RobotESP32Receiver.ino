@@ -44,11 +44,11 @@ struct joint{
   float max;
 };
 
-joint base = {0, 4, posA, 150, 900};
-joint link1 = {1, 5, posB, 150, 900};
-joint link2 = {2, 3.5, posC, 150, 900};
-joint link3 = {3, 1, posD, 150, 900};
-joint link4 = {4, 2, posE, 150, 900};
+joint base = {0, 4, posA, 100, 700};
+joint link1 = {1, 5, posB, 150, 700};
+joint link2 = {2, 3.5, posC, 150, 700};
+joint link3 = {3, 1, posD, 150, 700};
+joint link4 = {4, 2, posE, 150, 700};
 joint endEffector = {5, 2, posF, 350, 665};
 
 void moveMotor(joint *joint, float change){

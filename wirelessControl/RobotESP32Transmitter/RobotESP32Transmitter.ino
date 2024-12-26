@@ -66,6 +66,8 @@ void setup() {
   pinMode(lBlackPin, INPUT_PULLUP);
   pinMode(upPin, INPUT_PULLUP);
   pinMode(rBlackPin, INPUT_PULLUP);
+
+  pinMode(sel, INPUT_PULLUP);
   Serial.println("Transmitter Ready");
 }
 
@@ -76,6 +78,8 @@ void loop(){
   int lBlackState = digitalRead(lBlackPin);
   int upState = digitalRead(upPin);
   int rBlackState = digitalRead(rBlackPin);
+
+
 // JOYSTICK CONTROLS
   while(analogRead(xOut) > 2200){
     myData.pin = 1;
@@ -90,13 +94,13 @@ void loop(){
     delay(delayTime);
   }
     while(analogRead(yOut) > 2200){
-    myData.pin = 2;
+    myData.pin = 3;
     myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
   while(analogRead(yOut) < 1600){
-    myData.pin = 2;
+    myData.pin = 3;
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
@@ -117,13 +121,12 @@ void loop(){
     downState = digitalRead(downPin);
     while(downState == digitalRead(downPin)){
       downState = digitalRead(downPin);
-      myData.pin = 3;
+      myData.pin = 2;
       myData.change = -precision2;
       esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+      Serial.println("down");
       delay(10);
     }
-    Serial.println("down");
-    delay(500);
   }
   if(digitalRead(rightPin) != rightState){
     rightState = digitalRead(rightPin);
@@ -151,7 +154,7 @@ void loop(){
     upState = digitalRead(upPin);
     while(upState == digitalRead(upPin)){
       upState = digitalRead(upPin);
-    myData.pin = 3;
+    myData.pin = 2;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("up");
@@ -168,17 +171,5 @@ void loop(){
     Serial.println("right Black");
     delay(10);
     }
-  }
-    if(digitalRead(sel) == HIGH && digitalRead(rBlackPin) == HIGH){
-    myData.pin = 4;
-    myData.change = precision2;
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(10);
-  }
-    if(digitalRead(sel) == HIGH && digitalRead(lBlackPin) == HIGH){
-    myData.pin = 4;
-    myData.change = -precision2;
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(10);
   }
 }
