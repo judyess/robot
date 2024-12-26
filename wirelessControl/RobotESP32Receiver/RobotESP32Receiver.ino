@@ -17,6 +17,10 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
 float posA = 400;
 float posB = 400;
+float posC = 400;
+float posD = 400;
+float posE = 400;
+float posF = 400;
 
 #define motor1 1
 #define motor2 2
@@ -38,8 +42,12 @@ struct joint{
   float jointPosition;  
 };
 
-joint link1 = {1, 5, posA};
-joint link2 = {2, 3.5, posB};
+joint base = {0, 4, posA};
+joint link1 = {1, 5, posB};
+joint link2 = {2, 3.5, posC};
+joint link3 = {3, 1, posD};
+joint link4 = {4, 2, posE};
+joint endEffector = {5, 2, posF};
 
 void moveMotor(joint *joint, float change){
   float currentPosition = joint->jointPosition;
@@ -54,23 +62,39 @@ void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Link : ");
   Serial.println(myData.pin); 
+  if(myData.pin == 0){
+    moveMotor(&base, myData.change);
+  }
   if(myData.pin == 1){
     moveMotor(&link1, myData.change);
   }
   if(myData.pin == 2){
     moveMotor(&link2, myData.change);
   }
+  if(myData.pin == 3){
+    moveMotor(&link3, myData.change);
+  }
+  if(myData.pin == 4){
+    moveMotor(&link4, myData.change);
+  }
+  if(myData.pin == 5){
+    moveMotor(&endEffector, myData.change);
+  }
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(921600);
   WiFi.mode(WIFI_STA);
   esp_now_init();
   esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));
   pwm.begin();
   pwm.setPWMFreq(FREQUENCY);
-  pwm.setPWM(1,0,posA);
-  pwm.setPWM(2,0,posB);
+  pwm.setPWM(0,0,posA);
+  pwm.setPWM(1,0,posB);
+  pwm.setPWM(2,0,posC);
+  pwm.setPWM(3,0,posD);
+  pwm.setPWM(4,0,posE);
+  pwm.setPWM(5,0,posF);
   Serial.println("Receiver Ready");
 }
  

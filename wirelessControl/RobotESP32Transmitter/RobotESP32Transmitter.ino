@@ -4,6 +4,10 @@
 // pin IO35   y out
 // pin IO34   switch (joystick push)
 // ESP32 analog output ranges from 0 to 4095
+/* Rcvr pinouts:
+  Base = 0
+
+*/
 #include <WiFi.h>
 #include <esp_now.h>
 #include <Wire.h>
@@ -14,9 +18,15 @@ int precision = 5;
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
+const int leftPin = 14;
+const int downPin = 27;
+const int rightPin = 26;
+const int lBlackPin = 15;
+const int upPin = 2;
+const int rBlackPin = 4;
 
 // MAC Address of the ESP32 that will receive this data.
-uint8_t broadcastAddress[] = {0xA0, 0xDD, 0x6C, 0x0C, 0x85, 0x98}; //MAC addresses with 0x in front of each part
+uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC addresses with 0x in front of each part
 // {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; HILETGO ESP32 (slim profile one)
 // {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; AITRIP ESP32 "1" (fried)
 // {0xA0, 0xDD, 0x6C, 0x0F, 0x87, 0xF4}; AITRIP ESP32 "2"
@@ -49,16 +59,23 @@ void setup() {
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
 
-  pinMode(15, INPUT_PULLUP);
-
+  pinMode(leftPin, INPUT_PULLUP);
+  pinMode(downPin, INPUT_PULLUP);
+  pinMode(rightPin, INPUT_PULLUP);
+  pinMode(lBlackPin, INPUT_PULLUP);
+  pinMode(upPin, INPUT_PULLUP);
+  pinMode(rBlackPin, INPUT_PULLUP);
   Serial.println("Transmitter Ready");
 }
 
 void loop(){
-  if(digitalRead(15)==LOW){
-    Serial.println("button was pushed");
-    delay(100);
-  }
+  int leftState = digitalRead(leftPin);
+  int downState = digitalRead(downPin);
+  int rightState = digitalRead(rightPin);
+  int lBlackState = digitalRead(lBlackPin);
+  int upState = digitalRead(upPin);
+  int rBlackState = digitalRead(rBlackPin);
+// JOYSTICK CONTROLS
   while(analogRead(xOut) > 2200){
     myData.pin = 1;
     myData.change = precision;
@@ -82,5 +99,70 @@ void loop(){
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
+  }
+  //BUTTON CONTROLS
+  if(digitalRead(leftPin) != leftState){
+    leftState = digitalRead(leftPin);
+    myData.pin = 0;
+    myData.change = -precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("left");
+    delay(500);
+  }
+  if(digitalRead(downPin) != downState){
+    downState = digitalRead(downPin);
+    while(downState == digitalRead(downPin)){
+      downState = digitalRead(downPin);
+      myData.pin = 3;
+      myData.change = -precision;
+      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+      delay(10);
+    }
+    Serial.println("down");
+    delay(500);
+  }
+  if(digitalRead(rightPin) != rightState){
+    rightState = digitalRead(rightPin);
+    myData.pin = 0;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("right");
+    delay(500);
+  }
+  if(digitalRead(lBlackPin) != lBlackState){
+    lBlackState = digitalRead(lBlackPin);
+    myData.pin = 5;
+    myData.change = -precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    Serial.println("left Black");
+    delay(500);
+  }
+    if(digitalRead(upPin) != upState){
+    upState = digitalRead(upPin);
+    myData.pin = 3;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("up");
+    delay(500);
+  }
+    if(digitalRead(rBlackPin) != rBlackState){
+    rBlackState = digitalRead(rBlackPin);
+    myData.pin = 5;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("right Black");
+    delay(500);
+  }
+    if(digitalRead(sel) == HIGH && digitalRead(rBlackPin) == HIGH){
+    myData.pin = 4;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(500);
+  }
+    if(digitalRead(sel) == HIGH && digitalRead(lBlackPin) == HIGH){
+    myData.pin = 4;
+    myData.change = -precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(500);
   }
 }

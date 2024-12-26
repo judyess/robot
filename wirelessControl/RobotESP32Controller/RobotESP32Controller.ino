@@ -83,37 +83,37 @@ void loop() {
   
   if(digitalRead(14) != buttonState1){
     buttonState1 = digitalRead(buttonState1);
-    Serial.print("14: ");
+    Serial.print("Blue Left: ");
     Serial.println(buttonState1);
     delay(500);
   }
   if(digitalRead(27) != buttonState2){
     buttonState2 = digitalRead(buttonState2);
-    Serial.print("27: ");
+    Serial.print("Yellow Down: ");
     Serial.println(buttonState2);
     delay(500);
   }
   if(digitalRead(26) != buttonState3){
     buttonState3 = digitalRead(buttonState3);
-    Serial.print("26: ");
+    Serial.print("Red Right: ");
     Serial.println(buttonState3);
     delay(500);
   }
   if(digitalRead(15) != buttonState4){
-    buttonState4 = digitalRead(buttonState4);=230
-    Serial.print("Yellow: ");
+    buttonState4 = digitalRead(buttonState4);
+    Serial.print("L Black: ");
     Serial.println(buttonState4);
     delay(500);
   }
     if(digitalRead(2) != buttonState5){
     buttonState5 = digitalRead(buttonState5);
-    Serial.print("White1: ");
+    Serial.print("Green Up: ");
     Serial.println(buttonState5);
     delay(500);
   }
     if(digitalRead(4) != buttonState6){
     buttonState6 = digitalRead(buttonState6);
-    Serial.print("White2: ");
+    Serial.print("R Black: ");
     Serial.println(buttonState6);
     delay(500);
   }
