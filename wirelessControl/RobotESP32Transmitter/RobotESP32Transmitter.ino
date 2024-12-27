@@ -19,12 +19,15 @@ int precision2 = 1;
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
-const int leftPin = 14;
-const int downPin = 27;
-const int rightPin = 26;
-const int lBlackPin = 15;
-const int upPin = 2;
-const int rBlackPin = 4;
+
+//top row
+const int lBlackPin = 26;
+const int upPin = 27;
+const int rBlackPin = 14;
+// top row
+const int leftPin = 4;
+const int downPin = 2;
+const int rightPin = 15;
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC addresses with 0x in front of each part
@@ -49,7 +52,7 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 }
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(921600);
   WiFi.mode(WIFI_STA);
   
   esp_now_init();
@@ -114,7 +117,7 @@ void loop(){
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("left");
-    delay(10);
+    delay(20);
     }
   }
   if(digitalRead(downPin) != downState){
@@ -125,7 +128,7 @@ void loop(){
       myData.change = -precision2;
       esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
       Serial.println("down");
-      delay(10);
+      delay(100);
     }
   }
   if(digitalRead(rightPin) != rightState){
@@ -136,7 +139,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right");
-    delay(10);
+    delay(100);
     }
   }
   if(digitalRead(lBlackPin) != lBlackState){
@@ -147,7 +150,7 @@ void loop(){
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     Serial.println("left Black");
-    delay(10);
+    delay(100);
     }
   }
     if(digitalRead(upPin) != upState){
@@ -158,7 +161,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("up");
-    delay(10);
+    delay(100);
     }
   }
     if(digitalRead(rBlackPin) != rBlackState){
@@ -169,7 +172,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right Black");
-    delay(10);
+    delay(100);
     }
   }
 }
