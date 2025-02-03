@@ -2,7 +2,7 @@
 // ESP32 | PCA9685
 //  IO21   SDA
 //  IO22   SCL
-//  3v3    VCC (NOT VIN)
+//  3v3    VCC (NOT Vin)
 //  GND    GND
 
 #include <esp_now.h>
@@ -17,27 +17,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
 float posA = 400;
 float posB = 400;
-float posC = 400;
-float posD = 400;
-float posE = 400;
-float posF = 400;
-
-#define motor1 1
-#define motor2 2
-
-float precision = 0.5;
-float delayTime = 200;
-
-// *define the same data structure sent by the transmitter*
-typedef struct data_struct {
-  int pin;
-  int change;
-  float output;
-} data_struct;
-data_struct myData;
-
-struct joint{
-  int pin;              
+float posC = 400;2
   float len;         
   float jointPosition;  
   float min;

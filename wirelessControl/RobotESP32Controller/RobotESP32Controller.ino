@@ -1,4 +1,6 @@
-// Serial output is correct
+// For Remote Control tests.
+// Serial output is correct. 
+// This code has been incorporated into the transmitter sketch.
 
 #include <Wire.h>
 #include <Adafruit_PWMServoDriver.h>
