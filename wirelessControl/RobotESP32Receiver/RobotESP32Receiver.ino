@@ -17,12 +17,28 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
 
 float posA = 400;
 float posB = 400;
-float posC = 400;2
+float posC = 400;
+float posD = 400;
+float posE = 400;
+float posF = 400;
+float len;         
+float jointPosition;  
+
+// *define the same data structure sent by the transmitter*
+typedef struct data_struct {
+  int pin;
+  int change;
+  float output;
+} data_struct;
+
+struct joint{
+  int pin;              
   float len;         
   float jointPosition;  
   float min;
   float max;
 };
+data_struct myData;
 
 joint base = {0, 4, posA, 100, 700};
 joint link1 = {1, 5, posB, 150, 700};

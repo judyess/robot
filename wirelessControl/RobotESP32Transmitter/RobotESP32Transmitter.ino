@@ -12,9 +12,9 @@
 #include <esp_now.h>
 #include <Wire.h>
 
-int delayTime = 50;
+int delayTime = 100;
 int precision = 5;
-int precision2 = 1;
+int precision2 = 10;
 
 const int xOut = 32;
 const int yOut = 35;
@@ -128,7 +128,7 @@ void loop(){
       myData.change = -precision2;
       esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
       Serial.println("down");
-      delay(100);
+      delay(delayTime);
     }
   }
   if(digitalRead(rightPin) != rightState){
@@ -139,7 +139,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right");
-    delay(100);
+    delay(delayTime);
     }
   }
   if(digitalRead(lBlackPin) != lBlackState){
@@ -161,7 +161,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("up");
-    delay(100);
+    delay(delayTime);
     }
   }
     if(digitalRead(rBlackPin) != rBlackState){
@@ -172,7 +172,7 @@ void loop(){
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("right Black");
-    delay(100);
+    delay(delayTime);
     }
   }
 }
