@@ -1,47 +1,74 @@
-// Joystick Controller Side (Transmitter) Works
-//  ESP32   | Joystick
-// pin IO32   x out
-// pin IO35   y out
-// pin IO34   switch (joystick push)
-// ESP32 analog output ranges from 0 to 4095
-/* Rcvr pinouts:
-  Base = 0
 
+/* Using a homemade controller connected to an ESP32 to send commands to another ESP32 connected to the robot arm. 
+This program defines how a controller controls the robot arm.
+each button is either pressed or not.
+The joystick's position has either moved far enough outside of a self-defined neutral range to either be active or not.
+
+There are 4 motors mapped to the joystick with each corresponding to a direction on the joystick. (up, down, left, right)
+the value and direction of the joystick defines which motor will move and by how much.
+
+This program works by watcching when a button state has changed, which tells the receiver to toggle the motor on or off.
+So what the value is doesn't matter, it only matters if a value is equal to its previous value or not
+
+Details on how each device is connected and to watch
+Joystick Controller Side (Transmitter) connections between ESP32 and the joystick.
+ ESP32    | Joystick
+ pin IO32   x out
+ pin IO35   y out
+ pin IO34   switch (joystick push)
+ ESP32 analog output ranges from 0 to 4095 ( Arduino's s 0-1028)
+
+PCA 9685 -> Receiving ESP32 pin connections:
+GND -> GND
+DE not used.
+SCL -> IO 22 or 21 idr, my esp32 pin labels are under the board which is now soldered in place. But these are the IO pins that also accept SCL and SDA connections. 
+SDA -> IO 21 or 22 idr
+VCC -> 3.3V 
+V+ not used. Don't use.
+
+Controller -> Transmitting ESP32 pin connections:
+Joystick:
+X out = IO32
+Y out = IO35
+Press Joystick = IO34
+GND -> GND
+Vin -> 3.3V
 */
 #include <WiFi.h>
 #include <esp_now.h>
 #include <Wire.h>
 
+// the joystick fluctuates even when youre not moving it. So this defines a range of values to ignore. Values outside of the range (1600, 2200) will send commands to the receiver to
+int neutral_upper_bound = 2200;
+int neutral_lower_bound = 1600
+
 int delayTime = 100;
+// this tells the receiver how much to move a motor by.
 int precision = 5;
 int precision2 = 10;
 
+// pin connections on the ESP32
+  // joystick
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
-
-//top row
-const int lBlackPin = 26;
-const int upPin = 27;
-const int rBlackPin = 14;
-// top row
-const int leftPin = 4;
-const int downPin = 2;
-const int rightPin = 15;
+  // 6 buttons
+const int btn_LB = 26;
+const int btn1 = 27;
+const int btn_RB = 14;
+const int bhtn2 = 4;
+const int btn3 = 2;
+const int btn4 = 15;
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC addresses with 0x in front of each part
-// {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; HILETGO ESP32 (slim profile one)
-// {0xA0, 0xDD, 0x6C, 0x0E, 0xFB, 0x54}; AITRIP ESP32 "1" (fried)
-// {0xA0, 0xDD, 0x6C, 0x0F, 0x87, 0xF4}; AITRIP ESP32 "2"
-// a0:dd:6c:0c:85:98 ESP32 
 
-// Define a data structure
+// Define a data structure that accomodates the data being sent to the receiver. 
+//   Receiver should have the exact same data structure defined so that it has the tools to receive the data and manipulate it as needed.
 typedef struct data_struct {
   int pin;
   int change;
 } data_struct;
-
 data_struct myData;
 
 esp_now_peer_info_t peerInfo;
@@ -54,7 +81,6 @@ void onDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 void setup() {
   Serial.begin(921600);
   WiFi.mode(WIFI_STA);
-  
   esp_now_init();
   esp_now_register_send_cb(onDataSent);
 
@@ -63,78 +89,70 @@ void setup() {
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
 
-  pinMode(leftPin, INPUT_PULLUP);
-  pinMode(downPin, INPUT_PULLUP);
-  pinMode(rightPin, INPUT_PULLUP);
-  pinMode(lBlackPin, INPUT_PULLUP);
-  pinMode(upPin, INPUT_PULLUP);
-  pinMode(rBlackPin, INPUT_PULLUP);
+  pinMode(bhtn2, INPUT_PULLUP);
+  pinMode(btn3, INPUT_PULLUP);
+  pinMode(btn4, INPUT_PULLUP);
+  pinMode(btn_LB, INPUT_PULLUP);
+  pinMode(btn1, INPUT_PULLUP);
+  pinMode(btn_RB, INPUT_PULLUP);
+
+    //defines the initial state of the buttons when not pressed. These are used as a point of reference to be able to tell when a button or joystick is pressed or moved.
+    // moved from the loop to setujp 2/8/25
+  int bhtn2_state = digitalRead(bhtn2);
+  int btn3_state = digitalRead(btn3);
+  int btn4_state = digitalRead(btn4);
+  int lBlackState = digitalRead(btn_LB);
+  int btn1_state = digitalRead(btn1);
+  int rBlackState = digitalRead(btn_RB);
 
   pinMode(sel, INPUT_PULLUP);
   Serial.println("Transmitter Ready");
 }
 
 void loop(){
-  int leftState = digitalRead(leftPin);
-  int downState = digitalRead(downPin);
-  int rightState = digitalRead(rightPin);
-  int lBlackState = digitalRead(lBlackPin);
-  int upState = digitalRead(upPin);
-  int rBlackState = digitalRead(rBlackPin);
 
-
-// JOYSTICK CONTROLS
-  while(analogRead(xOut) > 2200){
+// JOYSTICK CONTROLS. Joysticks are analog.
+  while(analogRead(xOut) > neutral_upper_bound){
     myData.pin = 1;
     myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  while(analogRead(xOut) < 1600){
+  while(analogRead(xOut) < neutral_lower_bound){
     myData.pin = 1;
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-    while(analogRead(yOut) > 2200){
+    while(analogRead(yOut) > neutral_upper_bound){
     myData.pin = 3;
     myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  while(analogRead(yOut) < 1600){
+  while(analogRead(yOut) < neutral_lower_bound){
     myData.pin = 3;
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  //BUTTON CONTROLS
-  if(digitalRead(leftPin) != leftState){
-    leftState = digitalRead(leftPin);
-    while(leftState == digitalRead(leftPin)){
-      leftState = digitalRead(leftPin);
-    myData.pin = 0;
+  //BUTTON CONTROLS. Buttons are digital.
+  if(digitalRead(bhtn2) != bhtn2_state){
+    bhtn2_state = digitalRead(bhtn2);                 // bhtn2_state now equals the active state. 
+    while(bhtn2_state == digitalRead(bhtn2)){         // keep reading the button's current state until it no longer is equal to its active state
+      bhtn2_state = digitalRead(bhtn2);
+    myData.pin = 0;                                   // defines which of the robot arm's motor this controls by the pin its connected to on the PCA9685. 
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("left");
-    delay(20);
+    delay(delayTime);
     }
   }
-  if(digitalRead(downPin) != downState){
-    downState = digitalRead(downPin);
-    while(downState == digitalRead(downPin)){
-      downState = digitalRead(downPin);
-      myData.pin = 2;
-      myData.change = -precision2;
-      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-      Serial.println("down");
-      delay(delayTime);
-    }
-  }
-  if(digitalRead(rightPin) != rightState){
-    rightState = digitalRead(rightPin);
-    while(rightState == digitalRead(rightPin)){
-      rightState = digitalRead(rightPin);
+
+  if(digitalRead(btn4) != btn4_state){
+    btn4_state = digitalRead(btn4);
+    while(btn4_state == digitalRead(btn4)){ 
+      btn4_state = digitalRead(btn4);
     myData.pin = 0;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
@@ -142,32 +160,21 @@ void loop(){
     delay(delayTime);
     }
   }
-  if(digitalRead(lBlackPin) != lBlackState){
-    lBlackState = digitalRead(lBlackPin);
-    while(lBlackState == digitalRead(lBlackPin)){
-      lBlackState = digitalRead(lBlackPin);
+  if(digitalRead(btn_LB) != lBlackState){
+    lBlackState = digitalRead(btn_LB);
+    while(lBlackState == digitalRead(btn_LB)){
+      lBlackState = digitalRead(btn_LB);
     myData.pin = 5;
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     Serial.println("left Black");
-    delay(100);
-    }
-  }
-    if(digitalRead(upPin) != upState){
-    upState = digitalRead(upPin);
-    while(upState == digitalRead(upPin)){
-      upState = digitalRead(upPin);
-    myData.pin = 2;
-    myData.change = precision2;
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    Serial.println("up");
     delay(delayTime);
     }
   }
-    if(digitalRead(rBlackPin) != rBlackState){
-    rBlackState = digitalRead(rBlackPin);
-    while(rBlackState == digitalRead(rBlackPin)){
-      rBlackState = digitalRead(rBlackPin);
+  if(digitalRead(btn_RB) != rBlackState){
+    rBlackState = digitalRead(btn_RB);
+    while(rBlackState == digitalRead(btn_RB)){
+      rBlackState = digitalRead(btn_RB);
     myData.pin = 5;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
@@ -175,4 +182,27 @@ void loop(){
     delay(delayTime);
     }
   }
+    if(digitalRead(btn1) != btn1_state){
+    btn1_state = digitalRead(btn1);
+    while(btn1_state == digitalRead(btn1)){
+      btn1_state = digitalRead(btn1);
+    myData.pin = 2;
+    myData.change = precision2;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("up");
+    delay(delayTime);
+    }
+  }
+    if(digitalRead(btn3) != btn3_state){
+    btn3_state = digitalRead(btn3);
+    while(btn3_state == digitalRead(btn3)){
+      btn3_state = digitalRead(btn3);
+      myData.pin = 2;
+      myData.change = -precision2;
+      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+      Serial.println("down");
+      delay(delayTime);
+    }
+  }
+    
 }
