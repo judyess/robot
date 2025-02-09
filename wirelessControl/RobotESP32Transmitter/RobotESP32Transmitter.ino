@@ -2,37 +2,22 @@
 /* Using a homemade controller connected to an ESP32 to send commands to another ESP32 connected to the robot arm. 
 This program defines how a controller controls the robot arm.
 each button is either pressed or not.
-The joystick's position has either moved far enough outside of a self-defined neutral range to either be active or not.
+The joystick's position has either moved far enough outside of a defined neutral range. Within range = inactive. Outside of range = active.
+  This program continually watches for any state-changes, on a change of state, it toggles the corresponding motor on/off.
+  Connected to the receiver through WiFi and the receiver is located through its Mac address.
 
 There are 4 motors mapped to the joystick with each corresponding to a direction on the joystick. (up, down, left, right)
 the value and direction of the joystick defines which motor will move and by how much.
+the 6 buttons are mapped to 2 motors. The base and the claw.
 
-This program works by watcching when a button state has changed, which tells the receiver to toggle the motor on or off.
-So what the value is doesn't matter, it only matters if a value is equal to its previous value or not
-
-Details on how each device is connected and to watch
-Joystick Controller Side (Transmitter) connections between ESP32 and the joystick.
+Details on how each device is connected and to what
+Joystick Controller (Transmitter) connections between ESP32 and the joystick.
  ESP32    | Joystick
  pin IO32   x out
  pin IO35   y out
  pin IO34   switch (joystick push)
- ESP32 analog output ranges from 0 to 4095 ( Arduino's s 0-1028)
-
-PCA 9685 -> Receiving ESP32 pin connections:
-GND -> GND
-DE not used.
-SCL -> IO 22 or 21 idr, my esp32 pin labels are under the board which is now soldered in place. But these are the IO pins that also accept SCL and SDA connections. 
-SDA -> IO 21 or 22 idr
-VCC -> 3.3V 
-V+ not used. Don't use.
-
-Controller -> Transmitting ESP32 pin connections:
-Joystick:
-X out = IO32
-Y out = IO35
-Press Joystick = IO34
-GND -> GND
-Vin -> 3.3V
+ GND -> GND
+ Vin -> 3.3V
 */
 #include <WiFi.h>
 #include <esp_now.h>
@@ -42,8 +27,9 @@ Vin -> 3.3V
 int neutral_upper_bound = 2200;
 int neutral_lower_bound = 1600
 
+// using a delay to control the speed of the motors
 int delayTime = 100;
-// this tells the receiver how much to move a motor by.
+// this tells the receiver how to increment a motors position by. Lower number = more precision
 int precision = 5;
 int precision2 = 10;
 
@@ -56,7 +42,7 @@ const int sel = 34;
 const int btn_LB = 26;
 const int btn1 = 27;
 const int btn_RB = 14;
-const int bhtn2 = 4;
+const int btn2 = 4;
 const int btn3 = 2;
 const int btn4 = 15;
 
@@ -89,20 +75,20 @@ void setup() {
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
 
-  pinMode(bhtn2, INPUT_PULLUP);
+
+  pinMode(btn1, INPUT_PULLUP);
+  pinMode(btn2, INPUT_PULLUP);
   pinMode(btn3, INPUT_PULLUP);
   pinMode(btn4, INPUT_PULLUP);
   pinMode(btn_LB, INPUT_PULLUP);
-  pinMode(btn1, INPUT_PULLUP);
   pinMode(btn_RB, INPUT_PULLUP);
 
-    //defines the initial state of the buttons when not pressed. These are used as a point of reference to be able to tell when a button or joystick is pressed or moved.
-    // moved from the loop to setujp 2/8/25
-  int bhtn2_state = digitalRead(bhtn2);
+  //defines the initial states of the controller. These are used as a point of reference to be able to tell when a button or joystick is pressed or moved.
+  int btn1_state = digitalRead(btn1);
+  int btn2_state = digitalRead(btn2);
   int btn3_state = digitalRead(btn3);
   int btn4_state = digitalRead(btn4);
   int lBlackState = digitalRead(btn_LB);
-  int btn1_state = digitalRead(btn1);
   int rBlackState = digitalRead(btn_RB);
 
   pinMode(sel, INPUT_PULLUP);
@@ -110,7 +96,6 @@ void setup() {
 }
 
 void loop(){
-
 // JOYSTICK CONTROLS. Joysticks are analog.
   while(analogRead(xOut) > neutral_upper_bound){
     myData.pin = 1;
@@ -137,11 +122,11 @@ void loop(){
     delay(delayTime);
   }
   //BUTTON CONTROLS. Buttons are digital.
-  if(digitalRead(bhtn2) != bhtn2_state){
-    bhtn2_state = digitalRead(bhtn2);                 // bhtn2_state now equals the active state. 
-    while(bhtn2_state == digitalRead(bhtn2)){         // keep reading the button's current state until it no longer is equal to its active state
-      bhtn2_state = digitalRead(bhtn2);
-    myData.pin = 0;                                   // defines which of the robot arm's motor this controls by the pin its connected to on the PCA9685. 
+  if(digitalRead(btn2) != btn2_state){
+    btn2_state = digitalRead(btn2);                 // btn2_state now equals the active state. 
+    while(btn2_state == digitalRead(btn2)){         // keep reading the button's state until it changes
+      btn2_state = digitalRead(btn2);
+    myData.pin = 0;                                 // defines which of the robot arm's motor this controls by the pin its connected to on the PCA9685. 
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     Serial.println("left");
@@ -197,11 +182,11 @@ void loop(){
     btn3_state = digitalRead(btn3);
     while(btn3_state == digitalRead(btn3)){
       btn3_state = digitalRead(btn3);
-      myData.pin = 2;
-      myData.change = -precision2;
-      esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-      Serial.println("down");
-      delay(delayTime);
+    myData.pin = 2;
+    myData.change = -precision2;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    Serial.println("down");
+    delay(delayTime);
     }
   }
     

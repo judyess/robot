@@ -1,15 +1,28 @@
-// Robot Side (Receiver) Works
-// ESP32 | PCA9685
-//  IO21   SDA
-//  IO22   SCL
-//  3v3    VCC (NOT Vin)
-//  GND    GND
+/* Receiver that controls a 6DOF robot arm with all revolute joints. Connected to the transmitter through WiFi and the receivers Mac address.
+This code moves a motor by calculating where a motor should be, and sets its position over and over again.
+Position in degrees is referred to in terms of "ticks". 
+
+I am using 6 ~25kg motors.
+ Supplying 7.8 V to the PCA 9685 at the terminal block with a variable DC power supply.
+ If robot doesn't move to its starting position on power up and you know they are working, 
+  it is possible that the motors are not getting enough power.
+
+
+PCA 9685 and the Receiving ESP32's pin connections:
+GND -> GND
+DE not used.
+SCL -> IO 22 or 21 idr, my esp32 pin labels are under the board which is now soldered in place. But these are the IO pins for SCL and SDA. 
+SDA -> IO 21 or 22 idr
+VCC -> 3.3V 
+V+ not used. Don't use.
+*/
 
 #include <esp_now.h>
-#include <WiFi.h>
-#include <Wire.h> //I2C
-#include <Adafruit_PWMServoDriver.h> // PCA9685
+#include <WiFi.h> // this wireless controller uses WiFi
+#include <Wire.h> //for I2C communication
+#include <Adafruit_PWMServoDriver.h> // for the PCA9685
 
+// The frequency is usually given in the data sheet if one is available.
 #define MIN_PULSE_WIDTH       500 
 #define MAX_PULSE_WIDTH       2500 
 #define FREQUENCY             60
