@@ -39,20 +39,21 @@ float jointPosition;
 
 // *define the same data structure sent by the transmitter*
 typedef struct data_struct {
-  int pin;
+  int pca9685pin;
   int change;
   float output;
-} data_struct;
+};
 
+// defines a joint object. (a joint is a link and its associated motor)
 struct joint{
-  int pin;              
+  int pca9685pin;              
   float len;         
   float jointPosition;  
   float min;
   float max;
 };
-data_struct myData;
 
+data_struct myData;
 joint base = {0, 4, posA, 100, 700};
 joint link1 = {1, 5, posB, 150, 700};
 joint link2 = {2, 3.5, posC, 150, 700};
@@ -69,38 +70,38 @@ void moveMotor(joint *joint, float change){
   if(newPosition < joint -> min){
     newPosition = joint -> min;
   }
-  pwm.setPWM(joint->pin, 0, newPosition);
+  pwm.setPWM(joint->pca9685pin, 0, newPosition);
   joint->jointPosition = newPosition;
   Serial.println(joint->jointPosition);
-  //delay(delayTime);
+  delay(20);
 }
 
 void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.print("Link : ");
-  Serial.println(myData.pin); 
-  if(myData.pin == 0){
+  Serial.println(myData.pca9685pin); 
+  if(myData.pca9685pin == 0){
     moveMotor(&base, myData.change);
   }
-  if(myData.pin == 1){
+  if(myData.pca9685pin == 1){
     moveMotor(&link1, myData.change);
   }
-  if(myData.pin == 2){
+  if(myData.pca9685pin == 2){
     moveMotor(&link2, myData.change);
   }
-  if(myData.pin == 3){
+  if(myData.pca9685pin == 3){
     moveMotor(&link3, myData.change);
   }
-  if(myData.pin == 4){
+  if(myData.pca9685pin == 4){
     moveMotor(&link4, myData.change);
   }
-  if(myData.pin == 5){
+  if(myData.pca9685pin == 5){
     moveMotor(&endEffector, myData.change);
   }
 }
 
 void setup() {
-  Serial.begin(921600);
+  Serial.begin(115200);
   WiFi.mode(WIFI_STA);
   esp_now_init();
   esp_now_register_recv_cb(esp_now_recv_cb_t(onDataRecv));

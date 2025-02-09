@@ -28,25 +28,23 @@ int neutral_upper_bound = 2200;
 int neutral_lower_bound = 1600;
 
 // using a delay to control the speed of the motors
-int delayTime = 100;
+int delayTime = 50;
 // this tells the receiver how to increment a motors position by. Lower number = more precision
 int precision = 5;
-int precision2 = 10;
+int precision2 = 5;
 
 // pin connections on the ESP32
-  // joystick
+  // joystick analog pins
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
-  // 6 buttons
-const int btn_LB = 26;
-const int btn_RB = 14;
-const int btn1 = 27;
-const int btn2 = 4;
-const int btn3 = 2;
-const int btn4 = 15;
-
-
+  // 6 buttons digital pins
+const int btn5_LB = 26;
+const int btn5_RB = 14;
+const int btn0 = 2;
+const int btn1 = 4;
+const int btn2 = 15;
+const int btn3 = 27;
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC addresses with 0x in front of each part
@@ -54,7 +52,7 @@ uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC address
 // Define a data structure that accomodates the data being sent to the receiver. 
 //   Receiver should have the exact same data structure defined so that it has the tools to receive the data and manipulate it as needed.
 typedef struct data_struct {
-  int pin;
+  int pca9685pin;
   int change;
 } data_struct;
 data_struct myData;
@@ -77,12 +75,12 @@ void setup() {
   peerInfo.encrypt = false;
   esp_now_add_peer(&peerInfo);
 
+  pinMode(btn0, INPUT_PULLUP);
   pinMode(btn1, INPUT_PULLUP);
   pinMode(btn2, INPUT_PULLUP);
   pinMode(btn3, INPUT_PULLUP);
-  pinMode(btn4, INPUT_PULLUP);
-  pinMode(btn_LB, INPUT_PULLUP);
-  pinMode(btn_RB, INPUT_PULLUP);
+  pinMode(btn5_LB, INPUT_PULLUP);
+  pinMode(btn5_RB, INPUT_PULLUP);
 
   pinMode(sel, INPUT_PULLUP);
   Serial.println("Transmitter Ready");
@@ -90,102 +88,102 @@ void setup() {
 
 void loop(){
     //defines the initial states of the controller. These are used as a point of reference to be able to tell when a button or joystick is pressed or moved.
+  int btn0_state = digitalRead(btn0);
   int btn1_state = digitalRead(btn1);
   int btn2_state = digitalRead(btn2);
   int btn3_state = digitalRead(btn3);
-  int btn4_state = digitalRead(btn4);
-  int btn_LB_state = digitalRead(btn_LB);
-  int btn_RB_state = digitalRead(btn_RB);
+  int btn5_LB_state = digitalRead(btn5_LB);
+  int btn5_RB_state = digitalRead(btn5_RB);
+
 // JOYSTICK CONTROLS. Joysticks are analog.
   while(analogRead(xOut) > neutral_upper_bound){
-    myData.pin = 1;
+    myData.pca9685pin = 1;
     myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
   while(analogRead(xOut) < neutral_lower_bound){
-    myData.pin = 1;
+    myData.pca9685pin = 1;
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
   while(analogRead(yOut) > neutral_upper_bound){
-    myData.pin = 3;
+    myData.pca9685pin = 3;
     myData.change = precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
   while(analogRead(yOut) < neutral_lower_bound){
-    myData.pin = 3;
+    myData.pca9685pin = 3;
     myData.change = -precision;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  //BUTTON CONTROLS. Buttons are digital.
-  if(digitalRead(btn1) != btn1_state){
-    Serial.println("wrist up");
-    btn1_state = digitalRead(btn1);
-    while(btn1_state == digitalRead(btn1)){
-      btn1_state = digitalRead(btn1);
-    myData.pin = 2;
+  //BUTTON CONTROLS. One motor has been left out. Not enough buttons to map it to.
+  if(digitalRead(btn0) != btn0_state){
+    Serial.println("elbow up");
+    btn0_state = digitalRead(btn0);
+    while(btn0_state == digitalRead(btn0)){
+      btn0_state = digitalRead(btn0);
+    myData.pca9685pin = 2;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
     }
   }  
-
-  if(digitalRead(btn2) != btn2_state){
+  if(digitalRead(btn1) != btn1_state){
     Serial.println("rotate the base to the left");
-    btn2_state = digitalRead(btn2);                 // btn2_state now equals the active state. 
-    while(btn2_state == digitalRead(btn2)){         // keep reading the button's state until it changes
-      btn2_state = digitalRead(btn2);
-    myData.pin = 0;                                 // defines which of the robot arm's motor this controls by the pin its connected to on the PCA9685. 
+    btn1_state = digitalRead(btn1);                 // btn1_state now equals the active state. 
+    while(btn1_state == digitalRead(btn1)){         // keep reading the button's state until it changes
+      btn1_state = digitalRead(btn1);
+    myData.pca9685pin = 0;                                 // defines which of the robot arm's motor this controls by the pin its connected to on the PCA9685. 
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    delay(delayTime);
+    }
+  }
+  if(digitalRead(btn2) != btn2_state){
+    Serial.println("elbow down");
+    btn2_state = digitalRead(btn2);
+    while(btn2_state == digitalRead(btn2)){
+      btn2_state = digitalRead(btn2);
+    myData.pca9685pin = 2;
+    myData.change = -precision2;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
     }
   }
   if(digitalRead(btn3) != btn3_state){
-    Serial.println("wrist down");
-    btn3_state = digitalRead(btn3);
-    while(btn3_state == digitalRead(btn3)){
-      btn3_state = digitalRead(btn3);
-    myData.pin = 2;
-    myData.change = -precision2;
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(delayTime);
-    }
-  }
-  if(digitalRead(btn4) != btn4_state){
     Serial.println("rotate the base to the right");
-    btn4_state = digitalRead(btn4);
-    while(btn4_state == digitalRead(btn4)){ 
-      btn4_state = digitalRead(btn4);
-    myData.pin = 0;
+    btn3_state = digitalRead(btn3);
+    while(btn3_state == digitalRead(btn3)){ 
+      btn3_state = digitalRead(btn3);
+    myData.pca9685pin = 0;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
     }
   }
-  if(digitalRead(btn_LB) != btn_LB_state){
+  if(digitalRead(btn5_LB) != btn5_LB_state){
     Serial.println("open claw ");
-    btn_LB_state = digitalRead(btn_LB);
-    while(btn_LB_state == digitalRead(btn_LB)){
-      btn_LB_state = digitalRead(btn_LB);
-    myData.pin = 5;
+    btn5_LB_state = digitalRead(btn5_LB);
+    while(btn5_LB_state == digitalRead(btn5_LB)){
+      btn5_LB_state = digitalRead(btn5_LB);
+    myData.pca9685pin = 5;
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
     delay(delayTime);
     }
   }
-  if(digitalRead(btn_RB) != btn_RB_state){
-    btn_RB_state = digitalRead(btn_RB);
-    while(btn_RB_state == digitalRead(btn_RB)){
-      btn_RB_state = digitalRead(btn_RB);
-    myData.pin = 5;
+  if(digitalRead(btn5_RB) != btn5_RB_state){
+    Serial.println("close claw");
+    btn5_RB_state = digitalRead(btn5_RB);
+    while(btn5_RB_state == digitalRead(btn5_RB)){
+      btn5_RB_state = digitalRead(btn5_RB);
+    myData.pca9685pin = 5;
     myData.change = precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    Serial.println("close claw");
     delay(delayTime);
     }
   }    
