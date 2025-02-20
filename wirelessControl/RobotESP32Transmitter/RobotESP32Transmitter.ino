@@ -6,10 +6,6 @@ The joystick's position has either moved far enough outside of a defined neutral
   This program continually watches for any state-changes, on a change of state, it toggles the corresponding motor on/off.
   Connected to the receiver through WiFi and the receiver is located through its Mac address.
 
-There are 4 motors mapped to the joystick with each corresponding to a direction on the joystick. (up, down, left, right)
-the value and direction of the joystick defines which motor will move and by how much.
-the 6 buttons are mapped to 2 motors. The base and the claw.
-
 Details on how each device is connected and to what
 Joystick Controller (Transmitter) connections between ESP32 and the joystick.
  ESP32    | Joystick
@@ -18,6 +14,9 @@ Joystick Controller (Transmitter) connections between ESP32 and the joystick.
  pin IO34   switch (joystick push)
  GND -> GND
  Vin -> 3.3V
+
+ TO-DO (2/20/25):
+ Move all code specific to the robot arm to the receiver code, so this controller can be reused for other projects.
 */
 #include <WiFi.h>
 #include <esp_now.h>
@@ -33,18 +32,21 @@ int delayTime = 50;
 int precision = 5;
 int precision2 = 5;
 
-// pin connections on the ESP32
-  // joystick analog pins
+// (2)  joystick pin connections on the ESP32
 const int xOut = 32;
 const int yOut = 35;
 const int sel = 34;
-  // 6 buttons digital pins
-const int btn5_LB = 26;
+
+const int x2Out = 27;
+const int y2Out = 26;
+const int sel2 = 25;
+  // (6) buttons digital pins
+const int btn5_LB = 12; //originally was 26. Unsure if this pin will work
 const int btn5_RB = 14;
 const int btn0 = 2;
 const int btn1 = 4;
 const int btn2 = 15;
-const int btn3 = 27;
+const int btn3 = 9;     //originally was 27. Unsure if this pin will work
 
 // MAC Address of the ESP32 that will receive this data.
 uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC addresses with 0x in front of each part
@@ -52,8 +54,8 @@ uint8_t broadcastAddress[] = {0xD8, 0x13, 0x2A, 0x7E, 0xF5, 0x28}; //MAC address
 // Define a data structure that accomodates the data being sent to the receiver. 
 //   Receiver should have the exact same data structure defined so that it has the tools to receive the data and manipulate it as needed.
 typedef struct data_struct {
-  int pca9685pin;
-  int change;
+  int pca9685pin; // this info tells the receiver to move the motor connected to this pin
+  int change;   // this info tells the receiver how quickly to move the motor.
 } data_struct;
 data_struct myData;
 
@@ -83,19 +85,22 @@ void setup() {
   pinMode(btn5_RB, INPUT_PULLUP);
 
   pinMode(sel, INPUT_PULLUP);
+  pinMode(sel2, INPUT_PULLUP);
   Serial.println("Transmitter Ready");
 }
 
 void loop(){
-    //defines the initial states of the controller. These are used as a point of reference to be able to tell when a button or joystick is pressed or moved.
+    //defines the initial states of the controller. These are used as a point of reference to be able to tell when a button or joystick is pressed.
   int btn0_state = digitalRead(btn0);
   int btn1_state = digitalRead(btn1);
   int btn2_state = digitalRead(btn2);
   int btn3_state = digitalRead(btn3);
   int btn5_LB_state = digitalRead(btn5_LB);
   int btn5_RB_state = digitalRead(btn5_RB);
+  int sel_state = digitalRead(sel);
+  int sel2_state = digitalRead(sel2);
 
-// JOYSTICK CONTROLS. Joysticks are analog.
+  // joystick1
   while(analogRead(xOut) > neutral_upper_bound){
     myData.pca9685pin = 1;
     myData.change = precision;
@@ -120,7 +125,33 @@ void loop(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  //BUTTON CONTROLS. One motor has been left out. Not enough buttons to map it to.
+    // Joystick2
+  while(analogRead(x2Out) > neutral_upper_bound){
+    myData.pca9685pin = 2;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(delayTime);
+  }
+  while(analogRead(x2Out) < neutral_lower_bound){
+    myData.pca9685pin = 2;
+    myData.change = -precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(delayTime);
+  }
+  while(analogRead(y2Out) > neutral_upper_bound){
+    myData.pca9685pin = 4;
+    myData.change = precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(delayTime);
+  }
+  while(analogRead(y2Out) < neutral_lower_bound){
+    myData.pca9685pin = 4;
+    myData.change = -precision;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
+    delay(delayTime);
+  }  
+
+  //BUTTON CONTROLS.
   if(digitalRead(btn0) != btn0_state){
     Serial.println("elbow up");
     btn0_state = digitalRead(btn0);
@@ -178,7 +209,7 @@ void loop(){
   }
   if(digitalRead(btn5_RB) != btn5_RB_state){
     Serial.println("close claw");
-    btn5_RB_state = digitalRead(btn5_RB);
+    btn5_RB_state = digitalRead(btn5_RB);2
     while(btn5_RB_state == digitalRead(btn5_RB)){
       btn5_RB_state = digitalRead(btn5_RB);
     myData.pca9685pin = 5;
