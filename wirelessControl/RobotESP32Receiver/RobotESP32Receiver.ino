@@ -49,7 +49,7 @@ struct joint{
   int pca9685pin;              
   float len;         
   float jointPosition;  
-  float min;
+  float min;4
   float max;
 };
 
