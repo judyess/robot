@@ -49,8 +49,9 @@ struct joint{
   int pca9685pin;              
   float len;         
   float jointPosition;  
-  float min;4
+  float min;
   float max;
+  //float stepsize
 };
 
 data_struct myData;

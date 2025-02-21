@@ -36,14 +36,16 @@ int delayTime = 50;
 int precision = 5;
 int precision2 = 5;
 
-// (2)  joystick pin connections on the ESP32
-const int xOut = 32;
+// pin connections on the ESP32
+  // WORKS
+const int xOut = 34;
 const int yOut = 35;
-const int sel = 34;
+const int sel = 13; 
+  // WORKS
+const int x2Out = 33; 
+const int y2Out = 32;
+const int sel2 = 25; 
 
-const int x2Out = 27;
-const int y2Out = 26;
-const int sel2 = 25;
   /* (6) buttons digital pins
 const int btn5_LB = 12; //originally was 26. Unsure if this pin will work
 const int btn5_RB = 14;
@@ -107,8 +109,6 @@ void loop(){
   int btn5_LB_state = digitalRead(btn5_LB);
   int btn5_RB_state = digitalRead(btn5_RB);
   */
-  int sel_state = digitalRead(sel);
-  int sel2_state = digitalRead(sel2);
 
   // joystick1
   while(analogRead(xOut) > neutral_upper_bound){
@@ -139,19 +139,6 @@ void loop(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }
-  /*
-  if(digitalRead(sel) != sel_state){
-    Serial.println("base1");
-    sel_state = digitalRead(sel);
-    while(sel_state == digitalRead(sel)){
-      sel_state = digitalRead(sel);
-    myData.pca9685pin = 0;
-    myData.change = precision2;
-    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
-    delay(delayTime);
-    }
-  }
-  */
     // Joystick2
   while(analogRead(x2Out) > neutral_upper_bound2){
     Serial.println(analogRead(x2Out));
@@ -181,17 +168,29 @@ void loop(){
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
   }  
+
+  /*
+  while(digitalRead(sel) == LOW){
+    Serial.print("Joystick 1 pin: ");
+    Serial.println((sel));
+    myData.pca9685pin = 5;
+    myData.change = precision2;
+    esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
+    delay(delayTime); 
+    break;
+  }
+  */
+
+  //works
   while(digitalRead(sel2) == LOW){ // changed from !=Sel2_state. "== HIGH", "!=0" and "==1" do not work and triggers the send function constantly
-    Serial.println(digitalRead(sel2));
-    sel2_state = digitalRead(sel2);
-    while(sel2_state == digitalRead(sel2)){
-      sel2_state = digitalRead(sel2);
-    myData.pca9685pin = 0;
+    Serial.print("Joystick 2 pin: ");
+    Serial.println((sel2));
+    myData.pca9685pin = 5;
     myData.change = -precision2;
     esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData)); 
     delay(delayTime);
-    }
-  }  
+  }
+  
 /*
   //BUTTON CONTROLS.
   if(digitalRead(btn0) != btn0_state){
