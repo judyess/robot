@@ -9,11 +9,11 @@ I am using 6 ~25kg motors.
 
 
 PCA 9685 and the Receiving ESP32's pin connections:
-GND -> GND
+GND . GND
 DE not used.
-SCL -> IO 22 or 21 idr, my esp32 pin labels are under the board which is now soldered in place. But these are the IO pins for SCL and SDA. 
-SDA -> IO 21 or 22 idr
-VCC -> 3.3V 
+SCL . IO 22 or 21 idr, my esp32 pin labels are under the board which is now soldered in place. But these are the IO pins for SCL and SDA. 
+SDA . IO 21 or 22 idr
+VCC . 3.3V 
 V+ not used. Don't use.
 */
 
@@ -27,7 +27,25 @@ V+ not used. Don't use.
 #define MAX_PULSE_WIDTH       2500 
 #define FREQUENCY             60
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
+//static QueueHandle_t queue;
+//static TaskHandle_t taskB;
+//int queueLength = 2; 
 
+// same as the transmitter
+int j1x = 601;
+int j1y = 602;
+int j1btn = 603;
+int j2x = 701;
+int j2y = 702;
+int j2btn = 703;
+int btn1 = 310;
+int btn2 = 320;
+int btn3 = 330;
+int btn4 = 340;
+int btn5 = 350;
+int btn6 = 360;
+
+int count =2;
 float posA = 400;
 float posB = 400;
 float posC = 400;
@@ -39,10 +57,10 @@ float jointPosition;
 
 // *define the same data structure sent by the transmitter*
 typedef struct data_struct {
-  int pca9685pin;
-  int change;
+  int controlID;
+  int direction;
   float output;
-};
+}; data_struct myData;
 
 // defines a joint object. (a joint is a link and its associated motor)
 struct joint{
@@ -51,53 +69,69 @@ struct joint{
   float jointPosition;  
   float min;
   float max;
-  //float stepsize
+  float stepsize;
+  float direction;
 };
 
-data_struct myData;
-joint base = {0, 4, posA, 100, 700};
-joint link1 = {1, 5, posB, 150, 700};
-joint link2 = {2, 3.5, posC, 150, 700};
-joint link3 = {3, 1, posD, 150, 700};
-joint link4 = {4, 2, posE, 150, 700};
-joint endEffector = {5, 2, posF, 350, 665};
+joint base = {0, 4, posA, 100, 700, 5, 1};    // rotate
+joint link1 = {1, 5, posB, 150, 700, 5, 1};   // bend reverse of link2
+joint link2 = {2, 3.5, posC, 150, 700, 5, 1}; // bend reverse of link1
+joint link3 = {3, 1, posD, 150, 700, 5, 1};   // bend
+joint link4 = {4, 2, posE, 150, 700, 5, 1};   // rotate
+joint endEffector = {5, 2, posF, 350, 665, 5, 1};
 
-void moveMotor(joint *joint, float change){
+void moveMotor(joint *joint){
+  Serial.println(joint->direction);
   float currentPosition = joint->jointPosition;
-  float newPosition = currentPosition + change;
-  if(newPosition > joint -> max){
-    newPosition = joint -> max;
+  float newPosition = currentPosition + (joint->stepsize * joint->direction);
+  Serial.print("New Position: ");
+  delay(10);
+  if(newPosition > joint->max){
+    newPosition = joint->max;
   }
-  if(newPosition < joint -> min){
-    newPosition = joint -> min;
+  if(newPosition < joint->min){
+    newPosition = joint->min;
   }
   pwm.setPWM(joint->pca9685pin, 0, newPosition);
   joint->jointPosition = newPosition;
   Serial.println(joint->jointPosition);
-  delay(20);
 }
 
 void onDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
   memcpy(&myData, incomingData, sizeof(myData));
-  Serial.print("Link : ");
-  Serial.println(myData.pca9685pin); 
-  if(myData.pca9685pin == 0){
-    moveMotor(&base, myData.change);
+  Serial.print("Received: ");
+  Serial.print(myData.controlID);
+  Serial.print(" | ");
+  Serial.println(myData.direction);
+  if(myData.controlID == j2btn || myData.controlID == j1btn){
+    base.direction = myData.direction;
+    delay(10);
+    moveMotor(&base);
   }
-  if(myData.pca9685pin == 1){
-    moveMotor(&link1, myData.change);
+  if(myData.controlID == j1x){
+    link1.direction = myData.direction;
+    delay(10);
+    moveMotor(&link1);
   }
-  if(myData.pca9685pin == 2){
-    moveMotor(&link2, myData.change);
+  if(myData.controlID == j1y){
+    link2.direction = myData.direction;
+    delay(10);
+    moveMotor(&link2);
   }
-  if(myData.pca9685pin == 3){
-    moveMotor(&link3, myData.change);
+  if(myData.controlID == j2x){
+    link3.direction = myData.direction;
+    delay(10);
+    moveMotor(&link3);
   }
-  if(myData.pca9685pin == 4){
-    moveMotor(&link4, myData.change);
+  if(myData.controlID == j2y){
+    link4.direction = myData.direction;
+    delay(10);
+    moveMotor(&link4);
   }
-  if(myData.pca9685pin == 5){
-    moveMotor(&endEffector, myData.change);
+  if(myData.controlID == btn1){
+    endEffector.direction = myData.direction;
+    delay(10);
+    moveMotor(&endEffector);
   }
 }
 
@@ -114,6 +148,19 @@ void setup() {
   pwm.setPWM(3,0,posD);
   pwm.setPWM(4,0,posE);
   pwm.setPWM(5,0,posF);
+
+/*
+  xTaskCreatePinnedToCore(
+    queue, 
+    "Task", 
+    5000, 
+    NULL, 
+    0, // if priority is too high (at max 10) then the main loop2 won't run
+    &TaskB, 
+    0
+  ); 
+  */
+
   Serial.println("Receiver Ready");
 }
  
