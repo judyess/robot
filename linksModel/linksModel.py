@@ -28,7 +28,7 @@ from Link import Link
 newPositions=[]
 currentArm = []
 
-
+testAngle = 80
 
 # plot stuff
 fig = plt.figure()
@@ -48,7 +48,7 @@ def printArm(array):
     for link in array:
         printLink(link)
 
-""" DO NOT WORK. KEEPS RETURNING CRAP
+""" DOES NOT WORK. KEEPS RETURNING CRAP
 def previous(link):
     if link.pin != 0:
         return Link.allLinks[link.pin-1]
@@ -75,7 +75,7 @@ def rotateLink(link):
     y2 = link.position[1]
     x = abs(x2 - x1)
     y = abs(y2 - y1)
-    theta = 90
+    theta = testAngle
     radians = (theta*math.pi)/180
     newX = ((x)*math.cos(radians)) - ((y)*math.sin(radians)) + x1
     newY = ((x)*math.sin(radians)) + ((y)*math.cos(radians)) + y1
