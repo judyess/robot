@@ -50,6 +50,10 @@ def isParent(child, parent):
         return True
     else:
         return False
+def update():
+    for link in Link.arm:
+        if link.pin >= 1:
+            Link.arm[link.pin - 1].endpoint = link.root
     
 def rotate(link, angle):
     x1 = link.root[0]
@@ -60,9 +64,11 @@ def rotate(link, angle):
     y = abs(y2 - y1)
     radians = convertToRadians(angle)
 
-    x =  (((x2)*math.cos(radians)) - ((y2)*math.sin(radians)))
-    y = (((y2)*math.cos(radians)) + ((x2)*math.sin(radians)))
-    link.endpoint = (x, y, 0)
+    x =  (((x2)*math.cos(radians)) - ((y2)*math.sin(radians)))+x1
+    y = (((y2)*math.cos(radians)) + ((x2)*math.sin(radians)))+y1
+    link.endpoint = (x, y)
+    if link != Link.arm[-1]:
+        Link.arm[link.pin+1].root = link.endpoint
 
 # Test functions
 def printLink():
@@ -83,9 +89,9 @@ def display():
 
 
 # Begin
-rotate(link1, 90)
-#rotate(link2, 0)
-#rotate(link3, 0)
+rotate(link1, 45)
+rotate(link2, 90)
+rotate(link3, 45)
 display()
 printLink()
 
