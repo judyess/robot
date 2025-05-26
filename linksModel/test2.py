@@ -34,9 +34,9 @@ class Link:
             Link.arm[self.pin] = self
         else:
             Link.arm.append(self)
-link1 = Link(0, (0, 0), (3, 0), 3)
-link2 = Link(1, link1.endpoint, (6,0), 3)
-link3 = Link(2, link2.endpoint, (9,0), 3)    
+link1 = Link(0, [0, 0], [3, 0], 3)
+link2 = Link(1, link1.endpoint, [6,0], 3)
+link3 = Link(2, link2.endpoint, [9,0], 3)    
     
 def atan():
     print("atan(y/x)")
@@ -63,12 +63,12 @@ def rotate(link, angle):
     x = abs(x2 - x1)
     y = abs(y2 - y1)
     radians = convertToRadians(angle)
-
-    x =  (((x2)*math.cos(radians)) - ((y2)*math.sin(radians)))+x1
-    y = (((y2)*math.cos(radians)) + ((x2)*math.sin(radians)))+y1
-    link.endpoint = (x, y)
-    if link != Link.arm[-1]:
-        Link.arm[link.pin+1].root = link.endpoint
+        # I think this is the actual correct formula
+    x =  (((x2)*math.cos(radians)) - ((y2)*math.sin(radians)))#+(x1)                                                 
+    y = (((y2)*math.cos(radians)) + ((x2)*math.sin(radians)))#+(y1)
+    link.endpoint = [x, y]
+    if link.pin != 0:
+        Link.arm[link.pin-1].endpoint = link.root
 
 # Test functions
 def printLink():
@@ -89,9 +89,9 @@ def display():
 
 
 # Begin
-rotate(link1, 45)
-rotate(link2, 90)
-rotate(link3, 45)
+rotate(link1, 0)
+rotate(link2, 0)
+rotate(link3, 0)
 display()
 printLink()
 
